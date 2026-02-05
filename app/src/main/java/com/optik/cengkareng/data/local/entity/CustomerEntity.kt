@@ -9,7 +9,6 @@ data class CustomerEntity(
     val remoteId: Int? = null, // ID dari MySQL Server
     val nama: String,
     val noHp: String,
-    val alamat: String,
     val jenisLensa: String, // Minus/Plus/Silinder
     val ukuranKiri: String,
     val ukuranKanan: String,

@@ -31,7 +31,6 @@ class CustomerViewModel @Inject constructor(
             val dataBaru = CustomerEntity(
                 nama = nama,
                 noHp = hp, // Pastikan nama variabel ini sama dengan di CustomerEntity (noHp atau phone?)
-                alamat = "-", // Isi otomatis dengan strip karena admin tidak perlu input manual
                 jenisLensa = "General", // Default value dulu
                 ukuranKanan = "0.00",
                 ukuranKiri = "0.00"
