@@ -1,4 +1,4 @@
-package com.optik.cengkareng.ui.dashboard
+package com.optik.cengkareng
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

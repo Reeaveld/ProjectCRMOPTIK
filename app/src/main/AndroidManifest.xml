@@ -18,7 +18,7 @@
 
         <!-- Ganti .MainActivity menjadi com.optik.cengkareng.MainActivity -->
         <activity
-            android:name="com.optik.cengkareng.ui.dashboard.MainActivity"
+            android:name="com.optik.cengkareng.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.OptikCRM"> <!-- Tambahkan theme eksplisit disini juga -->
             <intent-filter>
