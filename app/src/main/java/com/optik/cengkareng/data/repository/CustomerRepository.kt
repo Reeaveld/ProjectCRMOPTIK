@@ -4,33 +4,42 @@ import android.util.Log
 import com.optik.cengkareng.data.local.dao.CustomerDao
 import com.optik.cengkareng.data.local.entity.CustomerEntity
 import com.optik.cengkareng.data.remote.api.ApiService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class CustomerRepository @Inject constructor(
     private val customerDao: CustomerDao,
     private val apiService: ApiService
 ) {
-    // Ambil data untuk ditampilkan di Home (dari Lokal biar cepat)
+    // 1. Ambil data dari Database HP (Agar UI cepat & bisa offline)
     fun getAllCustomers(): Flow<List<CustomerEntity>> = customerDao.getAllCustomers()
 
-    // Fungsi Simpan (Hybrid: Lokal + Cloud)
+    // 2. Fungsi Simpan (Hybrid: Lokal + Cloud)
+    // POIN 3 YANG SEBELUMNYA KURANG: Penambahan logika 'apiService.addCustomer'
     suspend fun addCustomer(customer: CustomerEntity) {
-        // 1. Simpan ke Lokal dulu (agar user merasa cepat/sat-set)
-        customerDao.insertCustomer(customer)
+        withContext(Dispatchers.IO) {
+            // A. Simpan ke Database Lokal dulu (Prioritas UI)
+            customerDao.insertCustomer(customer)
 
-        // 2. Kirim ke Server Laravel (Background)
-        try {
-            val response = apiService.addCustomer(customer)
-            if (response.isSuccessful) {
-                Log.d("CRM_DEBUG", "Sukses kirim ke Server: ${response.body()}")
-                // Opsional: Tandai data lokal sebagai 'Synced'
-            } else {
-                Log.e("CRM_DEBUG", "Gagal kirim: ${response.code()}")
+            // B. Coba Kirim ke Server Laravel
+            try {
+                Log.d("CRM_DEBUG", "Sedang mengirim ke: ${com.optik.cengkareng.core.utils.Constants.BASE_URL}")
+
+                val response = apiService.addCustomer(customer)
+
+                if (response.isSuccessful) {
+                    Log.d("CRM_DEBUG", "BERHASIL Upload ke Server! Response: ${response.body()}")
+                    // (Opsional) Nanti bisa update status 'isSynced = true' di lokal
+                } else {
+                    Log.e("CRM_DEBUG", "GAGAL Upload: Kode ${response.code()} - Pesan: ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                // Jika internet mati atau server error, data tetap aman di HP
+                Log.e("CRM_DEBUG", "ERROR JARINGAN: ${e.message}")
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            Log.e("CRM_DEBUG", "Error Jaringan: ${e.message}")
-            // Data tetap aman di HP, nanti bisa di-sync ulang (fitur lanjut)
         }
     }
 }
