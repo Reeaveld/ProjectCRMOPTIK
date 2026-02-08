@@ -2,6 +2,7 @@ package com.optik.cengkareng.data.repository
 
 import android.util.Log
 import com.optik.cengkareng.core.utils.Constants
+import com.optik.cengkareng.core.utils.Resource
 import com.optik.cengkareng.data.local.dao.CustomerDao
 import com.optik.cengkareng.data.local.entity.CustomerEntity
 import com.optik.cengkareng.data.remote.api.ApiService
@@ -16,38 +17,40 @@ class CustomerRepository @Inject constructor(
     private val apiService: ApiService
 ) {
 
-    // 1. Ambil data dari Database HP (Agar UI cepat & bisa offline)
+    // 1. Ambil data (Tidak berubah)
     fun getAllCustomers(): Flow<List<CustomerEntity>> = customerDao.getAllCustomers()
 
-    // 2. Fungsi Simpan (Hybrid: Lokal + Cloud)
-    suspend fun addCustomer(customer: CustomerEntity) {
+    // 2. Fungsi Simpan (UPDATE: Mengembalikan 'Resource' agar UI tahu statusnya)
+    suspend fun addCustomer(customer: CustomerEntity): Resource<Boolean> {
 
-        // PENTING: withContext(NonCancellable) mencegah "JobCancellationException"
-        // Ini membuat blok kode di dalamnya kebal terhadap pembatalan UI.
-        withContext(Dispatchers.IO + NonCancellable) {
+        // Kita pakai NonCancellable (Fitur bagus dari kodingan lama kamu)
+        return withContext(Dispatchers.IO + NonCancellable) {
 
-            // A. Simpan ke Database Lokal dulu (Prioritas UI)
+            // A. Simpan ke Database Lokal (Selalu dilakukan)
             val localId = customerDao.insertCustomer(customer)
             Log.d("CRM_DEBUG", "Data tersimpan di Lokal ID: $localId")
 
-            // B. Coba Kirim ke Server Laravel
+            // B. Coba Kirim ke Server
             try {
                 Log.d("CRM_DEBUG", "Mulai Upload ke: ${Constants.BASE_URL}")
 
                 val response = apiService.addCustomer(customer)
 
                 if (response.isSuccessful) {
-                    // Sukses 200/201
-                    Log.d("CRM_DEBUG", "✅ SUKSES UPLOAD ke Server! Response: ${response.body()}")
+                    Log.d("CRM_DEBUG", "✅ SUKSES UPLOAD: ${response.body()}")
+                    // BEDANYA DISINI: Kita lapor 'Sukses' ke ViewModel
+                    Resource.Success(true)
                 } else {
-                    // Gagal Server (misal 404, 500, 422)
                     val errorMsg = response.errorBody()?.string() ?: "Unknown Error"
                     Log.e("CRM_DEBUG", "❌ GAGAL SERVER: Kode ${response.code()} - $errorMsg")
+                    // BEDANYA DISINI: Kita lapor 'Error' ke ViewModel
+                    Resource.Error("Gagal Server: $errorMsg")
                 }
             } catch (e: Exception) {
-                // Gagal Koneksi (Internet mati / Server mati)
                 Log.e("CRM_DEBUG", "❌ ERROR JARINGAN: ${e.message}")
                 e.printStackTrace()
+                // BEDANYA DISINI: Kita lapor bahwa ini tersimpan Offline
+                Resource.Error("Tersimpan Offline (Jaringan Error)")
             }
         }
     }

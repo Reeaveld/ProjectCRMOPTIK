@@ -8,7 +8,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.optik.cengkareng.R
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
