@@ -22,4 +22,7 @@ interface CustomerDao {
     // Contoh query tambahan: Cari berdasarkan nama (untuk fitur Search nanti)
     @Query("SELECT * FROM customers WHERE nama LIKE '%' || :query || '%'")
     fun searchCustomers(query: String): Flow<List<CustomerEntity>>
+
+    @Query("SELECT * FROM customers WHERE id = :customerId")
+    fun getCustomerById(customerId: Int): Flow<CustomerEntity>
 }

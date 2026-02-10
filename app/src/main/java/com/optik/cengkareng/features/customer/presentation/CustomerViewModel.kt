@@ -6,6 +6,7 @@ import com.optik.cengkareng.core.utils.Resource
 import com.optik.cengkareng.data.local.entity.CustomerEntity
 import com.optik.cengkareng.data.repository.CustomerRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -51,5 +52,17 @@ class CustomerViewModel @Inject constructor(
             // 4. Beritahu UI: Hasilnya (Sukses/Error)
             _addCustomerEvent.send(result)
         }
+    }
+
+    // --- BAGIAN 3: DETAIL PELANGGAN (NEW) ---
+    // Menggunakan flatMapLatest agar jika ID berubah, flow data ikut berubah otomatis
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun getCustomerDetail(id: Int): StateFlow<CustomerEntity?> {
+        return repository.getCustomerById(id)
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = null
+            )
     }
 }

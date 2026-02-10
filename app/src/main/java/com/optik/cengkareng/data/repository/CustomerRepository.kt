@@ -20,6 +20,8 @@ class CustomerRepository @Inject constructor(
     // 1. Ambil data (Tidak berubah)
     fun getAllCustomers(): Flow<List<CustomerEntity>> = customerDao.getAllCustomers()
 
+    fun getCustomerById(id: Int): Flow<CustomerEntity> = customerDao.getCustomerById(id)
+
     // 2. Fungsi Simpan (UPDATE: Mengembalikan 'Resource' agar UI tahu statusnya)
     suspend fun addCustomer(customer: CustomerEntity): Resource<Boolean> {
 
