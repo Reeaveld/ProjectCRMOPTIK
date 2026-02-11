@@ -7,19 +7,22 @@
     android:background="#F5F5F5">
 
     <!-- Daftar Pelanggan (RecyclerView) -->
+
+    <!-- Teks jika data kosong -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvCustomers"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:padding="8dp"
         android:clipToPadding="false"
-        app:layout_constraintTop_toTopOf="parent"
+        android:padding="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        tools:listitem="@layout/item_customer"/>
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0"
+        tools:listitem="@layout/item_customer" />
 
-    <!-- Teks jika data kosong -->
     <TextView
         android:id="@+id/tvEmpty"
         android:layout_width="wrap_content"
