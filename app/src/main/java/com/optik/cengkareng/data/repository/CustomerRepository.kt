@@ -5,10 +5,12 @@ import com.optik.cengkareng.core.utils.Constants
 import com.optik.cengkareng.core.utils.Resource
 import com.optik.cengkareng.data.local.dao.CustomerDao
 import com.optik.cengkareng.data.local.entity.CustomerEntity
+import com.optik.cengkareng.data.remote.response.TransactionItem
 import com.optik.cengkareng.data.remote.api.ApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -21,6 +23,22 @@ class CustomerRepository @Inject constructor(
     fun getAllCustomers(): Flow<List<CustomerEntity>> = customerDao.getAllCustomers()
 
     fun getCustomerById(id: Int): Flow<CustomerEntity> = customerDao.getCustomerById(id)
+
+    suspend fun getCustomerTransactions(id: Int): Flow<Resource<List<TransactionItem>>> = flow {
+        emit(Resource.Loading)
+        try {
+            val response = apiService.getCustomerTransactions(id)
+            if (response.isSuccessful) {
+                // Mengambil list transaksi dari dalam bungkus "data" JSON Laravel
+                val transactions = response.body()?.data ?: emptyList()
+                emit(Resource.Success(transactions))
+            } else {
+                emit(Resource.Error("Gagal memuat riwayat: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.localizedMessage ?: "Terjadi kesalahan jaringan"))
+        }
+    }
 
     // 2. Fungsi Simpan (UPDATE: Mengembalikan 'Resource' agar UI tahu statusnya)
     suspend fun addCustomer(customer: CustomerEntity): Resource<Boolean> {
