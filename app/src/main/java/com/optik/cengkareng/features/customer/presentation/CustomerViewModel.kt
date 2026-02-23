@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.optik.cengkareng.core.utils.Resource
 import com.optik.cengkareng.data.local.entity.CustomerEntity
 import com.optik.cengkareng.data.repository.CustomerRepository
+import com.optik.cengkareng.data.remote.response.TransactionItem
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -64,5 +67,19 @@ class CustomerViewModel @Inject constructor(
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = null
             )
+    }
+
+    // 1. Penampung State (kondisi) untuk daftar transaksi
+    private val _transactionsState = MutableStateFlow<Resource<List<TransactionItem>>>(Resource.Loading)
+    val transactionsState: StateFlow<Resource<List<TransactionItem>>> = _transactionsState.asStateFlow()
+
+    // 2. Fungsi untuk memerintahkan Repository mengambil data
+    fun getCustomerTransactions(customerId: Int) {
+        viewModelScope.launch {
+            repository.getCustomerTransactions(customerId).collect { result ->
+                // Memperbarui nilai state setiap kali Repository memancarkan data baru (Loading/Success/Error)
+                _transactionsState.value = result
+            }
+        }
     }
 }
