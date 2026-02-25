@@ -24,22 +24,6 @@ class CustomerRepository @Inject constructor(
 
     fun getCustomerById(id: Int): Flow<CustomerEntity> = customerDao.getCustomerById(id)
 
-    suspend fun getCustomerTransactions(id: Int): Flow<Resource<List<TransactionItem>>> = flow {
-        emit(Resource.Loading)
-        try {
-            val response = apiService.getCustomerTransactions(id)
-            if (response.isSuccessful) {
-                // Mengambil list transaksi dari dalam bungkus "data" JSON Laravel
-                val transactions = response.body()?.data ?: emptyList()
-                emit(Resource.Success(transactions))
-            } else {
-                emit(Resource.Error("Gagal memuat riwayat: ${response.message()}"))
-            }
-        } catch (e: Exception) {
-            emit(Resource.Error(e.localizedMessage ?: "Terjadi kesalahan jaringan"))
-        }
-    }
-
     // 2. Fungsi Simpan (UPDATE: Mengembalikan 'Resource' agar UI tahu statusnya)
     suspend fun addCustomer(customer: CustomerEntity): Resource<Boolean> {
 
@@ -72,6 +56,22 @@ class CustomerRepository @Inject constructor(
                 // BEDANYA DISINI: Kita lapor bahwa ini tersimpan Offline
                 Resource.Error("Tersimpan Offline (Jaringan Error)")
             }
+        }
+    }
+
+    suspend fun getCustomerTransactions(id: Int): Flow<Resource<List<TransactionItem>>> = flow {
+        emit(Resource.Loading)
+        try {
+            val response = apiService.getCustomerTransactions(id)
+            if (response.isSuccessful) {
+                // Mengambil list transaksi dari dalam bungkus "data" JSON Laravel
+                val transactions = response.body()?.data ?: emptyList()
+                emit(Resource.Success(transactions))
+            } else {
+                emit(Resource.Error("Gagal memuat riwayat: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.localizedMessage ?: "Terjadi kesalahan jaringan"))
         }
     }
 }
