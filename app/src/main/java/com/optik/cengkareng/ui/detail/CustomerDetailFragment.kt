@@ -39,6 +39,9 @@ class CustomerDetailFragment : Fragment() {
 
         val customerId = args.customerId
 
+        // Memanggil API Laravel untuk mengambil riwayat transaksi
+        viewModel.getCustomerTransactions(customerId)
+
         // Setup Toolbar Back Button
         binding.toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()

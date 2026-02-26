@@ -9,14 +9,17 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.optik.cengkareng.data.local.entity.CustomerEntity
 import com.optik.cengkareng.databinding.ItemCustomerBinding
-import java.util.Locale
 import kotlin.math.abs
 
-class CustomerAdapter : ListAdapter<CustomerEntity, CustomerAdapter.CustomerViewHolder>(DiffCallback()) {
+// 1. Parameter onCustomerClick ditambahkan di Konstruktor Utama
+class CustomerAdapter(
+    private val onCustomerClick: (Int) -> Unit
+) : ListAdapter<CustomerEntity, CustomerAdapter.CustomerViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CustomerViewHolder {
         val binding = ItemCustomerBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return CustomerViewHolder(binding)
+        // 2. onCustomerClick diteruskan ke ViewHolder
+        return CustomerViewHolder(binding, onCustomerClick)
     }
 
     override fun onBindViewHolder(holder: CustomerViewHolder, position: Int) {
@@ -24,37 +27,39 @@ class CustomerAdapter : ListAdapter<CustomerEntity, CustomerAdapter.CustomerView
         holder.bind(item)
     }
 
-    class CustomerViewHolder(private val binding: ItemCustomerBinding) : RecyclerView.ViewHolder(binding.root) {
+    // 3. Konstruktor ViewHolder menerima onCustomerClick
+    class CustomerViewHolder(
+        private val binding: ItemCustomerBinding,
+        private val onCustomerClick: (Int) -> Unit
+    ) : RecyclerView.ViewHolder(binding.root) {
+
         fun bind(customer: CustomerEntity) {
-            // 1. Set Nama
+            // Set Data
             binding.tvNama.text = customer.nama
-
-            // 2. Set No HP
             binding.tvNomorHp.text = customer.noHp
-
-            // 3. Set Badge Jenis Lensa (Frappe Style Logic)
-            // Jika kosong, default ke "General"
             binding.tvJenisLensa.text = if (customer.jenisLensa.isNotEmpty()) customer.jenisLensa else "General"
 
-            // 4. Smart Avatar Logic (Inisial & Warna)
+            // Avatar Logic
             val initial = customer.nama.firstOrNull()?.toString()?.uppercase() ?: "?"
             binding.tvAvatar.text = initial
-
-            // Generate warna pastel unik berdasarkan nama
             val color = generateColorFromName(customer.nama)
             binding.tvAvatar.backgroundTintList = ColorStateList.valueOf(color)
 
-            // 5. Set Tanggal (Dummy logic untuk sekarang, nanti bisa pakai data real)
-            // Di Skripsi, fitur 'Last Follow Up' ini nilai plus besar
             binding.tvLastDate.text = "Baru"
 
-            // Klik Card
+            // BPJS Penanda Logic
+            if (customer.noHp.startsWith("BPJS")) {
+                binding.root.setBackgroundColor(Color.parseColor("#FEF08A"))
+            } else {
+                binding.root.setBackgroundColor(Color.WHITE)
+            }
+
+            // 4. Klik dieksekusi dengan valid
             binding.root.setOnClickListener {
-                // TODO: Navigasi ke Detail
+                onCustomerClick(customer.id)
             }
         }
 
-        // Fungsi Helper: Mengubah String nama menjadi Warna Hex yang konsisten
         private fun generateColorFromName(name: String): Int {
             val hash = abs(name.hashCode())
             // Daftar warna-warna pastel "Professional" (Frappe/Trello/Jira style)

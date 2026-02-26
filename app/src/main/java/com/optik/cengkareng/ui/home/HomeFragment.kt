@@ -23,10 +23,7 @@ class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    // Ambil ViewModel (Koki)
     private val viewModel: CustomerViewModel by viewModels()
-
-    // Siapkan Adapter
     private lateinit var customerAdapter: CustomerAdapter
 
     override fun onCreateView(
@@ -43,14 +40,17 @@ class HomeFragment : Fragment() {
         setupRecyclerView()
         setupObserver()
 
-        // Navigasi ke Input
         binding.fabAdd.setOnClickListener {
             findNavController().navigate(R.id.action_home_to_input)
         }
     }
 
     private fun setupRecyclerView() {
-        customerAdapter = CustomerAdapter()
+        customerAdapter = CustomerAdapter { customerId ->
+            val action = HomeFragmentDirections.actionHomeFragmentToCustomerDetailFragment(customerId)
+            findNavController().navigate(action)
+        }
+
         binding.rvCustomers.apply {
             adapter = customerAdapter
             layoutManager = LinearLayoutManager(requireContext())
@@ -58,13 +58,9 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupObserver() {
-        // Mengamati data dari ViewModel
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.customers.collectLatest { daftarPelanggan ->
-                // Update data di adapter
                 customerAdapter.submitList(daftarPelanggan)
-
-                // Tampilkan teks kosong jika tidak ada data
                 binding.tvEmpty.isVisible = daftarPelanggan.isEmpty()
                 binding.rvCustomers.isVisible = daftarPelanggan.isNotEmpty()
             }

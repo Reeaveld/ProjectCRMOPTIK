@@ -10,9 +10,15 @@
         android:name="com.optik.cengkareng.ui.home.HomeFragment"
         android:label="Daftar Pelanggan"
         tools:layout="@layout/fragment_home">
+
         <action
             android:id="@+id/action_home_to_input"
             app:destination="@id/inputCustomerFragment" />
+
+        <action
+            android:id="@+id/action_homeFragment_to_customerDetailFragment"
+            app:destination="@id/customerDetailFragment" />
+
     </fragment>
 
     <fragment
