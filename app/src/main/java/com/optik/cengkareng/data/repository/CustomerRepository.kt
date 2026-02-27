@@ -6,6 +6,8 @@ import com.optik.cengkareng.core.utils.Resource
 import com.optik.cengkareng.data.local.dao.CustomerDao
 import com.optik.cengkareng.data.local.entity.CustomerEntity
 import com.optik.cengkareng.data.remote.response.TransactionItem
+import com.optik.cengkareng.data.remote.request.CustomerRequest
+import org.json.JSONObject
 import com.optik.cengkareng.data.remote.api.ApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -69,6 +71,41 @@ class CustomerRepository @Inject constructor(
                 emit(Resource.Success(transactions))
             } else {
                 emit(Resource.Error("Gagal memuat riwayat: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.localizedMessage ?: "Terjadi kesalahan jaringan"))
+        }
+    }
+
+    suspend fun updateCustomer(id: Int, request: CustomerRequest): Flow<Resource<String>> = flow {
+        emit(Resource.Loading)
+        try {
+            val response = apiService.updateCustomer(id, request)
+            if (response.isSuccessful) {
+                // Berhasil diupdate
+                emit(Resource.Success("Data pelanggan berhasil diperbarui!"))
+            } else {
+                // ANALISIS: Menangkap Validasi Error 422 dari Laravel
+                if (response.code() == 422) {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMsg = try {
+                        // Membongkar JSON Error dari Laravel secara manual
+                        val jsonObject = JSONObject(errorBody!!)
+                        val errors = jsonObject.getJSONObject("errors")
+
+                        // Mengambil pesan error pertama dari kolom 'phone' (jika ada)
+                        if (errors.has("phone")) {
+                            errors.getJSONArray("phone").getString(0)
+                        } else {
+                            jsonObject.getString("message")
+                        }
+                    } catch (e: Exception) {
+                        "Validasi Gagal: Silakan periksa kembali data Anda."
+                    }
+                    emit(Resource.Error(errorMsg))
+                } else {
+                    emit(Resource.Error("Gagal memperbarui data: HTTP ${response.code()}"))
+                }
             }
         } catch (e: Exception) {
             emit(Resource.Error(e.localizedMessage ?: "Terjadi kesalahan jaringan"))

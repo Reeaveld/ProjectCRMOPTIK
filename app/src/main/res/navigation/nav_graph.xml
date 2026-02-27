@@ -24,8 +24,14 @@
     <fragment
         android:id="@+id/inputCustomerFragment"
         android:name="com.optik.cengkareng.ui.input.InputCustomerFragment"
-        android:label="Input Pelanggan"
-        tools:layout="@layout/fragment_input_customer" />
+        android:label="Data Pelanggan"
+        tools:layout="@layout/fragment_input_customer">
+
+        <argument
+            android:name="customerId"
+            app:argType="integer"
+            android:defaultValue="0" />
+    </fragment>
 
     <fragment
         android:id="@+id/customerDetailFragment"
@@ -36,5 +42,9 @@
         <argument
             android:name="customerId"
             app:argType="integer" />
+
+        <action
+            android:id="@+id/action_customerDetailFragment_to_inputCustomerFragment"
+            app:destination="@id/inputCustomerFragment" />
     </fragment>
 </navigation>
