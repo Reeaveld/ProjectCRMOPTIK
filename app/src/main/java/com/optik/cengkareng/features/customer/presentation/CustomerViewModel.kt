@@ -6,6 +6,7 @@ import com.optik.cengkareng.core.utils.Resource
 import com.optik.cengkareng.data.local.entity.CustomerEntity
 import com.optik.cengkareng.data.repository.CustomerRepository
 import com.optik.cengkareng.data.remote.response.TransactionItem
+import com.optik.cengkareng.data.remote.request.CustomerRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -79,6 +80,20 @@ class CustomerViewModel @Inject constructor(
             repository.getCustomerTransactions(customerId).collect { result ->
                 // Memperbarui nilai state setiap kali Repository memancarkan data baru (Loading/Success/Error)
                 _transactionsState.value = result
+            }
+        }
+    }
+
+    // --- BAGIAN 4: EDIT PELANGGAN ---
+    // Gunakan Channel untuk mencegah pemanggilan ulang saat rotasi layar
+    private val _updateCustomerEvent = Channel<Resource<String>>()
+    val updateCustomerEvent = _updateCustomerEvent.receiveAsFlow()
+
+    fun updateCustomer(id: Int, request: CustomerRequest) {
+        viewModelScope.launch {
+            _updateCustomerEvent.send(Resource.Loading)
+            repository.updateCustomer(id, request).collect { result ->
+                _updateCustomerEvent.send(result)
             }
         }
     }
