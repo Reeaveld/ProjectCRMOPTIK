@@ -1,0 +1,666 @@
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+index 6e044dd..5603881 100644
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -91,5 +91,10 @@ dependencies {
+ 
+     // Testing
+     testImplementation("junit:junit:4.13.2")
++    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
++    testImplementation("app.cash.turbine:turbine:1.0.0")
++    testImplementation("org.mockito:mockito-core:5.7.0")
++    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
++    testImplementation("androidx.arch.core:core-testing:2.2.0")
+     androidTestImplementation("androidx.test.ext:junit:1.1.5")
+ }
+\ No newline at end of file
+diff --git a/app/src/main/java/com/optik/cengkareng/data/remote/request/CustomerRequest.kt b/app/src/main/java/com/optik/cengkareng/data/remote/request/CustomerRequest.kt
+index 5ff07d0..a1fb2d2 100644
+--- a/app/src/main/java/com/optik/cengkareng/data/remote/request/CustomerRequest.kt
++++ b/app/src/main/java/com/optik/cengkareng/data/remote/request/CustomerRequest.kt
+@@ -2,11 +2,26 @@ package com.optik.cengkareng.data.remote.request
+ 
+ import com.google.gson.annotations.SerializedName
+ 
+-// Ini adalah format JSON yang akan dikirim ke Laravel saat Edit / Tambah
++/**
++ * Format JSON yang dikirim ke Laravel saat Update / Tambah Pelanggan.
++ *
++ * Penting: nama field di JSON harus IDENTIK dengan kolom tabel `customers`
++ * di Laravel (nama, no_hp, jenis_lensa, ukuran_kiri, ukuran_kanan).
++ * Field di Kotlin tetap pakai camelCase, mapping dilakukan oleh @SerializedName.
++ */
+ data class CustomerRequest(
+-    val name: String,
+-    val phone: String,
+-    val address: String?,
+-    @SerializedName("jenis_lensa") // Sesuaikan jika ada kolom jenis lensa di backend Anda
+-    val jenisLensa: String? = null
+-)
+\ No newline at end of file
++    @SerializedName("nama")
++    val nama: String,
++
++    @SerializedName("no_hp")
++    val noHp: String,
++
++    @SerializedName("jenis_lensa")
++    val jenisLensa: String? = null,
++
++    @SerializedName("ukuran_kiri")
++    val ukuranKiri: String? = null,
++
++    @SerializedName("ukuran_kanan")
++    val ukuranKanan: String? = null
++)
+diff --git a/app/src/main/java/com/optik/cengkareng/data/repository/CustomerRepository.kt b/app/src/main/java/com/optik/cengkareng/data/repository/CustomerRepository.kt
+index 7549e97..5f672f5 100644
+--- a/app/src/main/java/com/optik/cengkareng/data/repository/CustomerRepository.kt
++++ b/app/src/main/java/com/optik/cengkareng/data/repository/CustomerRepository.kt
+@@ -93,11 +93,11 @@ class CustomerRepository @Inject constructor(
+                         val jsonObject = JSONObject(errorBody!!)
+                         val errors = jsonObject.getJSONObject("errors")
+ 
+-                        // Mengambil pesan error pertama dari kolom 'phone' (jika ada)
+-                        if (errors.has("phone")) {
+-                            errors.getJSONArray("phone").getString(0)
+-                        } else {
+-                            jsonObject.getString("message")
++                        // Prioritas: no_hp (paling sering bentrok unique), lalu nama, lalu pesan umum
++                        when {
++                            errors.has("no_hp") -> errors.getJSONArray("no_hp").getString(0)
++                            errors.has("nama")  -> errors.getJSONArray("nama").getString(0)
++                            else                -> jsonObject.optString("message", "Validasi gagal.")
+                         }
+                     } catch (e: Exception) {
+                         "Validasi Gagal: Silakan periksa kembali data Anda."
+diff --git a/app/src/main/java/com/optik/cengkareng/ui/detail/CustomerDetailFragment.kt b/app/src/main/java/com/optik/cengkareng/ui/detail/CustomerDetailFragment.kt
+index b82963a..f9ee365 100644
+--- a/app/src/main/java/com/optik/cengkareng/ui/detail/CustomerDetailFragment.kt
++++ b/app/src/main/java/com/optik/cengkareng/ui/detail/CustomerDetailFragment.kt
+@@ -6,7 +6,7 @@ import android.view.View
+ import android.view.ViewGroup
+ import android.widget.Toast
+ import androidx.fragment.app.Fragment
+-import androidx.fragment.app.viewModels
++import androidx.fragment.app.activityViewModels
+ import androidx.lifecycle.lifecycleScope
+ import androidx.navigation.fragment.findNavController
+ import androidx.navigation.fragment.navArgs
+@@ -25,7 +25,10 @@ class CustomerDetailFragment : Fragment() {
+ 
+     // Mengambil ID yang dikirim dari Home
+     private val args: CustomerDetailFragmentArgs by navArgs()
+-    private val viewModel: CustomerViewModel by viewModels()
++    // Menggunakan activityViewModels() agar instance ViewModel SAMA PERSIS dengan
++    // CustomerHistoryFragment (anak ViewPager) sehingga transactionsState yang di-trigger
++    // di sini bisa di-observe di sana.
++    private val viewModel: CustomerViewModel by activityViewModels()
+ 
+     override fun onCreateView(
+         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+diff --git a/app/src/main/java/com/optik/cengkareng/ui/detail/CustomerHistoryFragment.kt b/app/src/main/java/com/optik/cengkareng/ui/detail/CustomerHistoryFragment.kt
+index 0d7e915..ec93a19 100644
+--- a/app/src/main/java/com/optik/cengkareng/ui/detail/CustomerHistoryFragment.kt
++++ b/app/src/main/java/com/optik/cengkareng/ui/detail/CustomerHistoryFragment.kt
+@@ -14,8 +14,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
+ import com.optik.cengkareng.core.utils.Resource
+ import com.optik.cengkareng.databinding.FragmentCustomerHistoryBinding
+ import com.optik.cengkareng.features.customer.presentation.CustomerViewModel
++import dagger.hilt.android.AndroidEntryPoint
+ import kotlinx.coroutines.launch
+ 
++@AndroidEntryPoint
+ class CustomerHistoryFragment : Fragment() {
+     private var _binding: FragmentCustomerHistoryBinding? = null
+     private val binding get() = _binding!!
+diff --git a/app/src/main/java/com/optik/cengkareng/ui/input/InputCustomerFragment.kt b/app/src/main/java/com/optik/cengkareng/ui/input/InputCustomerFragment.kt
+index cd7c067..8cd03e2 100644
+--- a/app/src/main/java/com/optik/cengkareng/ui/input/InputCustomerFragment.kt
++++ b/app/src/main/java/com/optik/cengkareng/ui/input/InputCustomerFragment.kt
+@@ -81,9 +81,10 @@ class InputCustomerFragment : Fragment() {
+                 // Eksekusi API Update
+                 // Mengemas data JSON menggunakan DTO CustomerRequest
+                 val request = CustomerRequest(
+-                    name = nama,
+-                    phone = hp,
+-                    address = null // Sesuaikan jika ada kotak input alamat di masa depan
++                    nama = nama,
++                    noHp = hp
++                    // jenisLensa / ukuranKiri / ukuranKanan opsional;
++                    // tambahkan saat form input diperluas.
+                 )
+                 viewModel.updateCustomer(customerId, request)
+             }
+diff --git a/app/src/main/java/com/optik/cengkareng/ui/profile/ProfileFragment.kt b/app/src/main/java/com/optik/cengkareng/ui/profile/ProfileFragment.kt
+new file mode 100644
+index 0000000..7b1c5e4
+--- /dev/null
++++ b/app/src/main/java/com/optik/cengkareng/ui/profile/ProfileFragment.kt
+@@ -0,0 +1,58 @@
++package com.optik.cengkareng.ui.profile
++
++import android.content.pm.PackageManager
++import android.os.Bundle
++import android.view.LayoutInflater
++import android.view.View
++import android.view.ViewGroup
++import androidx.fragment.app.Fragment
++import com.optik.cengkareng.databinding.FragmentProfileBinding
++
++/**
++ * Halaman Profil minimal — placeholder yang sudah rapi.
++ *
++ * Status implementasi:
++ * - Tidak ada Hilt/ViewModel di sini (memang belum dibutuhkan).
++ * - Menampilkan nama aplikasi, tagline, info akun statis ("Admin Optik"),
++ *   dan versi aplikasi dari PackageInfo.
++ * - Slot siap dipakai saat fitur Auth (login/logout) diimplementasikan.
++ *
++ * Jika nanti ada Auth: tinggal inject AuthRepository / SessionManager,
++ * isi tvUserName + tvUserStatus dari data sesi, tambahkan tombol Logout.
++ */
++class ProfileFragment : Fragment() {
++
++    private var _binding: FragmentProfileBinding? = null
++    private val binding get() = _binding!!
++
++    override fun onCreateView(
++        inflater: LayoutInflater,
++        container: ViewGroup?,
++        savedInstanceState: Bundle?
++    ): View {
++        _binding = FragmentProfileBinding.inflate(inflater, container, false)
++        return binding.root
++    }
++
++    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
++        super.onViewCreated(view, savedInstanceState)
++        renderVersion()
++    }
++
++    private fun renderVersion() {
++        val ctx = context ?: return
++        val pm = ctx.packageManager
++        val versionText = runCatching {
++            @Suppress("DEPRECATION")
++            val info = pm.getPackageInfo(ctx.packageName, 0)
++            val name = info.versionName ?: "1.0"
++            "Versi $name"
++        }.getOrDefault("Versi 1.0")
++        binding.tvVersion.text = versionText
++    }
++
++    override fun onDestroyView() {
++        super.onDestroyView()
++        _binding = null
++    }
++}
+diff --git a/app/src/main/res/layout/fragment_profile.xml b/app/src/main/res/layout/fragment_profile.xml
+new file mode 100644
+index 0000000..d54a8de
+--- /dev/null
++++ b/app/src/main/res/layout/fragment_profile.xml
+@@ -0,0 +1,150 @@
++<?xml version="1.0" encoding="utf-8"?>
++<androidx.core.widget.NestedScrollView
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    xmlns:app="http://schemas.android.com/apk/res-auto"
++    xmlns:tools="http://schemas.android.com/tools"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    android:background="#F5F5F5"
++    android:fillViewport="true">
++
++    <androidx.constraintlayout.widget.ConstraintLayout
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:padding="24dp">
++
++        <!-- Avatar besar -->
++        <TextView
++            android:id="@+id/tvAvatarProfile"
++            android:layout_width="96dp"
++            android:layout_height="96dp"
++            android:background="@drawable/bg_circle_avatar"
++            android:gravity="center"
++            android:text="O"
++            android:textColor="#FFFFFF"
++            android:textSize="36sp"
++            android:textStyle="bold"
++            android:layout_marginTop="24dp"
++            app:layout_constraintTop_toTopOf="parent"
++            app:layout_constraintStart_toStartOf="parent"
++            app:layout_constraintEnd_toEndOf="parent" />
++
++        <TextView
++            android:id="@+id/tvAppName"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:text="Optik CRM"
++            android:textColor="#212121"
++            android:textSize="22sp"
++            android:textStyle="bold"
++            android:layout_marginTop="16dp"
++            app:layout_constraintTop_toBottomOf="@id/tvAvatarProfile"
++            app:layout_constraintStart_toStartOf="parent"
++            app:layout_constraintEnd_toEndOf="parent" />
++
++        <TextView
++            android:id="@+id/tvAppTagline"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:text="Mobile CRM untuk Optik Cengkareng"
++            android:textColor="#616161"
++            android:textSize="14sp"
++            android:layout_marginTop="4dp"
++            app:layout_constraintTop_toBottomOf="@id/tvAppName"
++            app:layout_constraintStart_toStartOf="parent"
++            app:layout_constraintEnd_toEndOf="parent" />
++
++        <!-- Section: Akun -->
++        <com.google.android.material.card.MaterialCardView
++            android:id="@+id/cardAccount"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:layout_marginTop="32dp"
++            app:cardCornerRadius="12dp"
++            app:cardElevation="2dp"
++            app:layout_constraintTop_toBottomOf="@id/tvAppTagline"
++            app:layout_constraintStart_toStartOf="parent"
++            app:layout_constraintEnd_toEndOf="parent">
++
++            <LinearLayout
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:orientation="vertical"
++                android:padding="16dp">
++
++                <TextView
++                    android:layout_width="wrap_content"
++                    android:layout_height="wrap_content"
++                    android:text="Akun"
++                    android:textColor="#212121"
++                    android:textSize="16sp"
++                    android:textStyle="bold" />
++
++                <TextView
++                    android:id="@+id/tvUserName"
++                    android:layout_width="match_parent"
++                    android:layout_height="wrap_content"
++                    android:text="Admin Optik"
++                    android:textColor="#424242"
++                    android:textSize="14sp"
++                    android:layout_marginTop="8dp" />
++
++                <TextView
++                    android:id="@+id/tvUserStatus"
++                    android:layout_width="match_parent"
++                    android:layout_height="wrap_content"
++                    android:text="Mode lokal — fitur login akan tersedia di sprint berikutnya."
++                    android:textColor="#9E9E9E"
++                    android:textSize="12sp"
++                    android:layout_marginTop="2dp" />
++            </LinearLayout>
++        </com.google.android.material.card.MaterialCardView>
++
++        <!-- Section: Tentang Aplikasi -->
++        <com.google.android.material.card.MaterialCardView
++            android:id="@+id/cardAbout"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:layout_marginTop="16dp"
++            app:cardCornerRadius="12dp"
++            app:cardElevation="2dp"
++            app:layout_constraintTop_toBottomOf="@id/cardAccount"
++            app:layout_constraintStart_toStartOf="parent"
++            app:layout_constraintEnd_toEndOf="parent">
++
++            <LinearLayout
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:orientation="vertical"
++                android:padding="16dp">
++
++                <TextView
++                    android:layout_width="wrap_content"
++                    android:layout_height="wrap_content"
++                    android:text="Tentang Aplikasi"
++                    android:textColor="#212121"
++                    android:textSize="16sp"
++                    android:textStyle="bold" />
++
++                <TextView
++                    android:id="@+id/tvVersion"
++                    android:layout_width="match_parent"
++                    android:layout_height="wrap_content"
++                    android:text="Versi 1.0 (debug)"
++                    android:textColor="#424242"
++                    android:textSize="14sp"
++                    android:layout_marginTop="8dp"
++                    tools:text="Versi 1.0 (debug)" />
++
++                <TextView
++                    android:layout_width="match_parent"
++                    android:layout_height="wrap_content"
++                    android:text="Skripsi Sistem Informasi CRM Mobile — Universitas Jenderal Soedirman"
++                    android:textColor="#9E9E9E"
++                    android:textSize="12sp"
++                    android:layout_marginTop="2dp" />
++            </LinearLayout>
++        </com.google.android.material.card.MaterialCardView>
++
++    </androidx.constraintlayout.widget.ConstraintLayout>
++</androidx.core.widget.NestedScrollView>
+diff --git a/app/src/main/res/navigation/nav_graph.xml b/app/src/main/res/navigation/nav_graph.xml
+index 294cd5d..3a5ba75 100644
+--- a/app/src/main/res/navigation/nav_graph.xml
++++ b/app/src/main/res/navigation/nav_graph.xml
+@@ -47,4 +47,11 @@
+             android:id="@+id/action_customerDetailFragment_to_inputCustomerFragment"
+             app:destination="@id/inputCustomerFragment" />
+     </fragment>
++
++    <!-- Tujuan navigasi untuk tab "Profil" di BottomNavigationView -->
++    <fragment
++        android:id="@+id/profileFragment"
++        android:name="com.optik.cengkareng.ui.profile.ProfileFragment"
++        android:label="Profil"
++        tools:layout="@layout/fragment_profile" />
+ </navigation>
+\ No newline at end of file
+diff --git a/app/src/test/java/com/optik/cengkareng/MainDispatcherRule.kt b/app/src/test/java/com/optik/cengkareng/MainDispatcherRule.kt
+new file mode 100644
+index 0000000..772b38e
+--- /dev/null
++++ b/app/src/test/java/com/optik/cengkareng/MainDispatcherRule.kt
+@@ -0,0 +1,31 @@
++package com.optik.cengkareng
++
++import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.ExperimentalCoroutinesApi
++import kotlinx.coroutines.test.TestDispatcher
++import kotlinx.coroutines.test.UnconfinedTestDispatcher
++import kotlinx.coroutines.test.resetMain
++import kotlinx.coroutines.test.setMain
++import org.junit.rules.TestWatcher
++import org.junit.runner.Description
++
++/**
++ * JUnit Rule yang mengganti Dispatchers.Main dengan TestDispatcher selama test berjalan,
++ * lalu mengembalikannya saat test selesai.
++ *
++ * Wajib dipakai untuk ViewModel yang memakai viewModelScope (karena scope tersebut
++ * di-bind ke Dispatchers.Main.immediate).
++ */
++@OptIn(ExperimentalCoroutinesApi::class)
++class MainDispatcherRule(
++    val testDispatcher: TestDispatcher = UnconfinedTestDispatcher()
++) : TestWatcher() {
++
++    override fun starting(description: Description) {
++        Dispatchers.setMain(testDispatcher)
++    }
++
++    override fun finished(description: Description) {
++        Dispatchers.resetMain()
++    }
++}
+diff --git a/app/src/test/java/com/optik/cengkareng/features/customer/presentation/CustomerViewModelTest.kt b/app/src/test/java/com/optik/cengkareng/features/customer/presentation/CustomerViewModelTest.kt
+new file mode 100644
+index 0000000..02d2a9b
+--- /dev/null
++++ b/app/src/test/java/com/optik/cengkareng/features/customer/presentation/CustomerViewModelTest.kt
+@@ -0,0 +1,252 @@
++package com.optik.cengkareng.features.customer.presentation
++
++import app.cash.turbine.test
++import com.optik.cengkareng.MainDispatcherRule
++import com.optik.cengkareng.core.utils.Resource
++import com.optik.cengkareng.data.local.entity.CustomerEntity
++import com.optik.cengkareng.data.remote.request.CustomerRequest
++import com.optik.cengkareng.data.remote.response.TransactionItem
++import com.optik.cengkareng.data.repository.CustomerRepository
++import kotlinx.coroutines.ExperimentalCoroutinesApi
++import kotlinx.coroutines.flow.flowOf
++import kotlinx.coroutines.test.advanceUntilIdle
++import kotlinx.coroutines.test.runTest
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertTrue
++import org.junit.Before
++import org.junit.Rule
++import org.junit.Test
++import org.mockito.kotlin.mock
++import org.mockito.kotlin.verify
++import org.mockito.kotlin.whenever
++
++/**
++ * Unit test untuk CustomerViewModel.
++ *
++ * Yang diuji:
++ *  - StateFlow `customers` (BAGIAN 1)
++ *  - Channel `addCustomerEvent` Loading→Success dan Loading→Error (BAGIAN 2)
++ *  - `getCustomerDetail` (BAGIAN 3)
++ *  - StateFlow `transactionsState` Loading→Success dan Loading→Error
++ *  - Channel `updateCustomerEvent` Loading→Success dan Loading→Error (BAGIAN 4)
++ *
++ * Mocking: pakai mockito-kotlin agar sintaks Kotlin idiomatik.
++ * Dispatcher: pakai MainDispatcherRule (UnconfinedTestDispatcher) agar
++ *             viewModelScope berjalan synchronously di test.
++ */
++@OptIn(ExperimentalCoroutinesApi::class)
++class CustomerViewModelTest {
++
++    @get:Rule
++    val mainDispatcherRule = MainDispatcherRule()
++
++    private lateinit var repository: CustomerRepository
++    private lateinit var viewModel: CustomerViewModel
++
++    private val sampleCustomer = CustomerEntity(
++        id = 1,
++        remoteId = null,
++        nama = "Budi",
++        noHp = "081234567890"
++    )
++
++    private val sampleTransactions = listOf(
++        TransactionItem(
++            id = 10,
++            invoice = "INV-001",
++            dateFormatted = "08 Jun 2026",
++            amountRaw = 250_000.0,
++            amountFormatted = "Rp 250.000",
++            statusLabel = "Selesai",
++            statusColor = "#4CAF50",
++            prescriptions = emptyList()
++        )
++    )
++
++    @Before
++    fun setUp() {
++        repository = mock()
++        // Default agar konstruktor ViewModel (yang langsung mengakses getAllCustomers())
++        // tidak crash karena stub null.
++        whenever(repository.getAllCustomers()).thenReturn(flowOf(emptyList()))
++    }
++
++    // ---------------------------------------------------------------------
++    // 1. customers StateFlow
++    // ---------------------------------------------------------------------
++    @Test
++    fun `customers state memancarkan list dari repository`() = runTest {
++        whenever(repository.getAllCustomers()).thenReturn(flowOf(listOf(sampleCustomer)))
++        viewModel = CustomerViewModel(repository)
++
++        viewModel.customers.test {
++            // Karena pakai stateIn(WhileSubscribed) — emisi pertama adalah initialValue (emptyList)
++            // lalu nilai dari upstream. Pakai loop kecil agar tetap aman meski urutan emisi
++            // tidak deterministik di environment test.
++            var seen: List<CustomerEntity> = awaitItem()
++            if (seen.isEmpty()) seen = awaitItem()
++            assertEquals(listOf(sampleCustomer), seen)
++            cancelAndIgnoreRemainingEvents()
++        }
++    }
++
++    // ---------------------------------------------------------------------
++    // 2. addCustomer — sukses
++    // ---------------------------------------------------------------------
++    @Test
++    fun `addCustomer mengirim Loading lalu Success ketika repository berhasil`() = runTest {
++        whenever(repository.addCustomer(any<CustomerEntity>())).thenReturn(Resource.Success(true))
++        viewModel = CustomerViewModel(repository)
++
++        viewModel.addCustomerEvent.test {
++            viewModel.addCustomer("Budi", "081234567890")
++
++            assertTrue(awaitItem() is Resource.Loading)
++            val result = awaitItem()
++            assertTrue(result is Resource.Success)
++            assertEquals(true, (result as Resource.Success).data)
++
++            cancelAndIgnoreRemainingEvents()
++        }
++
++        // Pastikan ViewModel memang memanggil repository
++        verify(repository).addCustomer(any<CustomerEntity>())
++    }
++
++    // ---------------------------------------------------------------------
++    // 3. addCustomer — error
++    // ---------------------------------------------------------------------
++    @Test
++    fun `addCustomer mengirim Loading lalu Error ketika repository gagal`() = runTest {
++        whenever(repository.addCustomer(any<CustomerEntity>()))
++            .thenReturn(Resource.Error("Tersimpan Offline (Jaringan Error)"))
++        viewModel = CustomerViewModel(repository)
++
++        viewModel.addCustomerEvent.test {
++            viewModel.addCustomer("Budi", "081234567890")
++
++            assertTrue(awaitItem() is Resource.Loading)
++            val result = awaitItem()
++            assertTrue(result is Resource.Error)
++            assertEquals("Tersimpan Offline (Jaringan Error)", (result as Resource.Error).message)
++
++            cancelAndIgnoreRemainingEvents()
++        }
++    }
++
++    // ---------------------------------------------------------------------
++    // 4. getCustomerDetail
++    // ---------------------------------------------------------------------
++    @Test
++    fun `getCustomerDetail memancarkan entity dari repository`() = runTest {
++        whenever(repository.getCustomerById(1)).thenReturn(flowOf(sampleCustomer))
++        viewModel = CustomerViewModel(repository)
++
++        viewModel.getCustomerDetail(1).test {
++            val first = awaitItem()           // initialValue (null) dari stateIn
++            val second = if (first == null) awaitItem() else first
++            assertEquals(sampleCustomer, second)
++            cancelAndIgnoreRemainingEvents()
++        }
++    }
++
++    // ---------------------------------------------------------------------
++    // 5. transactionsState — sukses
++    // ---------------------------------------------------------------------
++    @Test
++    fun `getCustomerTransactions mengubah transactionsState menjadi Success`() = runTest {
++        whenever(repository.getCustomerTransactions(1)).thenReturn(
++            flowOf(Resource.Loading, Resource.Success(sampleTransactions))
++        )
++        viewModel = CustomerViewModel(repository)
++
++        viewModel.getCustomerTransactions(1)
++        advanceUntilIdle()
++
++        val state = viewModel.transactionsState.value
++        assertTrue("Expected Success, got $state", state is Resource.Success)
++        assertEquals(sampleTransactions, (state as Resource.Success).data)
++    }
++
++    // ---------------------------------------------------------------------
++    // 6. transactionsState — error
++    // ---------------------------------------------------------------------
++    @Test
++    fun `getCustomerTransactions mengubah transactionsState menjadi Error`() = runTest {
++        whenever(repository.getCustomerTransactions(1)).thenReturn(
++            flowOf(Resource.Loading, Resource.Error("HTTP 500"))
++        )
++        viewModel = CustomerViewModel(repository)
++
++        viewModel.getCustomerTransactions(1)
++        advanceUntilIdle()
++
++        val state = viewModel.transactionsState.value
++        assertTrue("Expected Error, got $state", state is Resource.Error)
++        assertEquals("HTTP 500", (state as Resource.Error).message)
++    }
++
++    // ---------------------------------------------------------------------
++    // 7. updateCustomer — sukses
++    // ---------------------------------------------------------------------
++    @Test
++    fun `updateCustomer mengirim Loading lalu Success ketika repository sukses`() = runTest {
++        val req = CustomerRequest(nama = "Budi", noHp = "081234567890")
++        whenever(repository.updateCustomer(eq(1), eq(req))).thenReturn(
++            flowOf(Resource.Loading, Resource.Success("Data pelanggan berhasil diperbarui!"))
++        )
++        viewModel = CustomerViewModel(repository)
++
++        viewModel.updateCustomerEvent.test {
++            viewModel.updateCustomer(1, req)
++
++            // VM mengirim Loading sendiri sebelum mengumpulkan flow Repo
++            assertTrue(awaitItem() is Resource.Loading)
++            // Lalu Repo emit Loading -> VM forward
++            assertTrue(awaitItem() is Resource.Loading)
++            // Lalu Success
++            val result = awaitItem()
++            assertTrue(result is Resource.Success)
++            assertEquals(
++                "Data pelanggan berhasil diperbarui!",
++                (result as Resource.Success).data
++            )
++
++            cancelAndIgnoreRemainingEvents()
++        }
++    }
++
++    // ---------------------------------------------------------------------
++    // 8. updateCustomer — error 422
++    // ---------------------------------------------------------------------
++    @Test
++    fun `updateCustomer mengirim Loading lalu Error ketika validasi 422`() = runTest {
++        val req = CustomerRequest(nama = "Budi", noHp = "081234567890")
++        whenever(repository.updateCustomer(eq(1), eq(req))).thenReturn(
++            flowOf(
++                Resource.Loading,
++                Resource.Error("Nomor HP sudah terdaftar pada pelanggan lain!")
++            )
++        )
++        viewModel = CustomerViewModel(repository)
++
++        viewModel.updateCustomerEvent.test {
++            viewModel.updateCustomer(1, req)
++
++            assertTrue(awaitItem() is Resource.Loading) // dari VM
++            assertTrue(awaitItem() is Resource.Loading) // dari Repo
++            val result = awaitItem()
++            assertTrue(result is Resource.Error)
++            assertEquals(
++                "Nomor HP sudah terdaftar pada pelanggan lain!",
++                (result as Resource.Error).message
++            )
++
++            cancelAndIgnoreRemainingEvents()
++        }
++    }
++}
++
++// Helper agar mockito-kotlin `any()` / `eq()` ringkas — re-export saja.
++private inline fun <reified T : Any> any(): T = org.mockito.kotlin.any()
++private fun <T> eq(value: T): T = org.mockito.kotlin.eq(value)

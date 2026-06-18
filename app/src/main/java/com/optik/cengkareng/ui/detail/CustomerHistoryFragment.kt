@@ -14,8 +14,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.optik.cengkareng.core.utils.Resource
 import com.optik.cengkareng.databinding.FragmentCustomerHistoryBinding
 import com.optik.cengkareng.features.customer.presentation.CustomerViewModel
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class CustomerHistoryFragment : Fragment() {
     private var _binding: FragmentCustomerHistoryBinding? = null
     private val binding get() = _binding!!

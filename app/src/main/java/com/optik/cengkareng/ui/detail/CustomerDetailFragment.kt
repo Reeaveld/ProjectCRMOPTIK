@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -25,7 +25,10 @@ class CustomerDetailFragment : Fragment() {
 
     // Mengambil ID yang dikirim dari Home
     private val args: CustomerDetailFragmentArgs by navArgs()
-    private val viewModel: CustomerViewModel by viewModels()
+    // Menggunakan activityViewModels() agar instance ViewModel SAMA PERSIS dengan
+    // CustomerHistoryFragment (anak ViewPager) sehingga transactionsState yang di-trigger
+    // di sini bisa di-observe di sana.
+    private val viewModel: CustomerViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?

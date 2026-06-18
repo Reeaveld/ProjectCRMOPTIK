@@ -47,4 +47,11 @@
             android:id="@+id/action_customerDetailFragment_to_inputCustomerFragment"
             app:destination="@id/inputCustomerFragment" />
     </fragment>
+
+    <!-- Tujuan navigasi untuk tab "Profil" di BottomNavigationView -->
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.optik.cengkareng.ui.profile.ProfileFragment"
+        android:label="Profil"
+        tools:layout="@layout/fragment_profile" />
 </navigation>

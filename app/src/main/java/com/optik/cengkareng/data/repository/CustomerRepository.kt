@@ -93,11 +93,11 @@ class CustomerRepository @Inject constructor(
                         val jsonObject = JSONObject(errorBody!!)
                         val errors = jsonObject.getJSONObject("errors")
 
-                        // Mengambil pesan error pertama dari kolom 'phone' (jika ada)
-                        if (errors.has("phone")) {
-                            errors.getJSONArray("phone").getString(0)
-                        } else {
-                            jsonObject.getString("message")
+                        // Prioritas: no_hp (paling sering bentrok unique), lalu nama, lalu pesan umum
+                        when {
+                            errors.has("no_hp") -> errors.getJSONArray("no_hp").getString(0)
+                            errors.has("nama")  -> errors.getJSONArray("nama").getString(0)
+                            else                -> jsonObject.optString("message", "Validasi gagal.")
                         }
                     } catch (e: Exception) {
                         "Validasi Gagal: Silakan periksa kembali data Anda."

@@ -81,9 +81,10 @@ class InputCustomerFragment : Fragment() {
                 // Eksekusi API Update
                 // Mengemas data JSON menggunakan DTO CustomerRequest
                 val request = CustomerRequest(
-                    name = nama,
-                    phone = hp,
-                    address = null // Sesuaikan jika ada kotak input alamat di masa depan
+                    nama = nama,
+                    noHp = hp
+                    // jenisLensa / ukuranKiri / ukuranKanan opsional;
+                    // tambahkan saat form input diperluas.
                 )
                 viewModel.updateCustomer(customerId, request)
             }
