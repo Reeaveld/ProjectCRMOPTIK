@@ -7,6 +7,7 @@ import com.optik.cengkareng.data.local.entity.CustomerEntity
 import com.optik.cengkareng.data.repository.CustomerRepository
 import com.optik.cengkareng.data.remote.response.TransactionItem
 import com.optik.cengkareng.data.remote.request.CustomerRequest
+import com.optik.cengkareng.data.remote.request.TransactionRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,8 +25,7 @@ class CustomerViewModel @Inject constructor(
     private val repository: CustomerRepository
 ) : ViewModel() {
 
-    // --- BAGIAN 1: LIST DATA (KODE LAMA - DIPERTAHANKAN) ---
-    // Menggunakan StateFlow karena UI perlu data terbaru setiap saat
+    // --- LIST DATA PELANGGAN ---
     val customers: StateFlow<List<CustomerEntity>> = repository.getAllCustomers()
         .stateIn(
             scope = viewModelScope,
@@ -33,33 +33,23 @@ class CustomerViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    // --- BAGIAN 2: INPUT EVENT (KODE BARU - UNTUK UX) ---
-    // Menggunakan Channel karena ini adalah "Kejadian sesaat" (Loading -> Selesai)
+    // --- TAMBAH PELANGGAN ---
     private val _addCustomerEvent = Channel<Resource<Boolean>>()
     val addCustomerEvent = _addCustomerEvent.receiveAsFlow()
 
     fun addCustomer(nama: String, hp: String) {
         viewModelScope.launch {
-            // 1. Beritahu UI: "Sedang Loading..."
             _addCustomerEvent.send(Resource.Loading)
-
-            // 2. Siapkan Data
             val dataBaru = CustomerEntity(
                 nama = nama,
-                noHp = hp,
-                // Field lain menggunakan default value dari Entity
+                noHp = hp.ifBlank { null }
             )
-
-            // 3. Panggil Repository & Tunggu Hasil
             val result = repository.addCustomer(dataBaru)
-
-            // 4. Beritahu UI: Hasilnya (Sukses/Error)
             _addCustomerEvent.send(result)
         }
     }
 
-    // --- BAGIAN 3: DETAIL PELANGGAN (NEW) ---
-    // Menggunakan flatMapLatest agar jika ID berubah, flow data ikut berubah otomatis
+    // --- DETAIL PELANGGAN & TRANSAKSI ---
     @OptIn(ExperimentalCoroutinesApi::class)
     fun getCustomerDetail(id: Int): StateFlow<CustomerEntity?> {
         return repository.getCustomerById(id)
@@ -70,22 +60,18 @@ class CustomerViewModel @Inject constructor(
             )
     }
 
-    // 1. Penampung State (kondisi) untuk daftar transaksi
     private val _transactionsState = MutableStateFlow<Resource<List<TransactionItem>>>(Resource.Loading)
     val transactionsState: StateFlow<Resource<List<TransactionItem>>> = _transactionsState.asStateFlow()
 
-    // 2. Fungsi untuk memerintahkan Repository mengambil data
     fun getCustomerTransactions(customerId: Int) {
         viewModelScope.launch {
             repository.getCustomerTransactions(customerId).collect { result ->
-                // Memperbarui nilai state setiap kali Repository memancarkan data baru (Loading/Success/Error)
                 _transactionsState.value = result
             }
         }
     }
 
-    // --- BAGIAN 4: EDIT PELANGGAN ---
-    // Gunakan Channel untuk mencegah pemanggilan ulang saat rotasi layar
+    // --- EDIT PELANGGAN ---
     private val _updateCustomerEvent = Channel<Resource<String>>()
     val updateCustomerEvent = _updateCustomerEvent.receiveAsFlow()
 
@@ -94,6 +80,32 @@ class CustomerViewModel @Inject constructor(
             _updateCustomerEvent.send(Resource.Loading)
             repository.updateCustomer(id, request).collect { result ->
                 _updateCustomerEvent.send(result)
+            }
+        }
+    }
+
+    // --- LENGKAPI PROFIL PELANGGAN ---
+    private val _completeProfileEvent = Channel<Resource<String>>()
+    val completeProfileEvent = _completeProfileEvent.receiveAsFlow()
+
+    fun completeProfile(id: Int, noHp: String) {
+        viewModelScope.launch {
+            _completeProfileEvent.send(Resource.Loading)
+            repository.completeProfile(id, noHp).collect { result ->
+                _completeProfileEvent.send(result)
+            }
+        }
+    }
+
+    // --- TAMBAH TRANSAKSI BARU ---
+    private val _createTransactionEvent = Channel<Resource<String>>()
+    val createTransactionEvent = _createTransactionEvent.receiveAsFlow()
+
+    fun createTransaction(request: TransactionRequest) {
+        viewModelScope.launch {
+            _createTransactionEvent.send(Resource.Loading)
+            repository.createTransaction(request).collect { result ->
+                _createTransactionEvent.send(result)
             }
         }
     }

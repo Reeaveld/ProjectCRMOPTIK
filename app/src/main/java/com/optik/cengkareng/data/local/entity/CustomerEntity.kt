@@ -13,10 +13,8 @@ data class CustomerEntity(
 
     val nama: String,
 
-    // PERBAIKAN DI SINI:
-    // Gunakan @SerializedName agar dikirim sebagai "no_hp" ke server
     @SerializedName("no_hp")
-    val noHp: String,
+    val noHp: String? = null,
 
     @SerializedName("jenis_lensa")
     val jenisLensa: String = "General",
@@ -30,5 +28,23 @@ data class CustomerEntity(
     @SerializedName("last_follow_up")
     val lastFollowUp: Long = 0,
 
+    @SerializedName("is_profile_complete")
+    val isProfileCompleteBackend: Boolean? = null,
+
     val isSynced: Boolean = false
-)
+) {
+    /**
+     * Evaluasi kelengkapan profil di client.
+     * Mengembalikan true jika nomor HP terisi dan memenuhi format Indonesia.
+     */
+    fun isProfileComplete(): Boolean {
+        if (isProfileCompleteBackend != null) {
+            return isProfileCompleteBackend
+        }
+        val phone = noHp
+        if (phone.isNullOrBlank()) return false
+        if (phone.startsWith("BPJS-")) return false
+        val cleaned = phone.replace(Regex("[^0-9+]"), "")
+        return Regex("^(\\+62|62|0)8[0-9]{7,12}$").matches(cleaned)
+    }
+}

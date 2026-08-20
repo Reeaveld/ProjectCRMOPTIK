@@ -10,6 +10,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.optik.cengkareng.R
 import com.optik.cengkareng.databinding.FragmentHomeBinding
 import com.optik.cengkareng.features.customer.presentation.CustomerViewModel
@@ -46,9 +47,26 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        customerAdapter = CustomerAdapter { customerId ->
-            val action = HomeFragmentDirections.actionHomeFragmentToCustomerDetailFragment(customerId)
-            findNavController().navigate(action)
+        customerAdapter = CustomerAdapter { customer ->
+            if (!customer.isProfileComplete()) {
+                // Alur Kelengkapan Data: Tampilkan dialog ajakan melengkapi No. HP
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Profil Belum Lengkap")
+                    .setMessage("Nomor HP pelanggan '${customer.nama}' belum terisi/valid. " +
+                            "Lengkapi nomor HP agar jadwal follow-up otomatis WhatsApp dapat diaktifkan.")
+                    .setPositiveButton("Lengkapi Data") { _, _ ->
+                        val action = HomeFragmentDirections.actionHomeToInput(customerId = customer.id)
+                        findNavController().navigate(action)
+                    }
+                    .setNegativeButton("Lihat Detail") { _, _ ->
+                        val action = HomeFragmentDirections.actionHomeFragmentToCustomerDetailFragment(customer.id)
+                        findNavController().navigate(action)
+                    }
+                    .show()
+            } else {
+                val action = HomeFragmentDirections.actionHomeFragmentToCustomerDetailFragment(customer.id)
+                findNavController().navigate(action)
+            }
         }
 
         binding.rvCustomers.apply {

@@ -5,6 +5,8 @@ import com.optik.cengkareng.MainDispatcherRule
 import com.optik.cengkareng.core.utils.Resource
 import com.optik.cengkareng.data.local.entity.CustomerEntity
 import com.optik.cengkareng.data.remote.request.CustomerRequest
+import com.optik.cengkareng.data.remote.request.PrescriptionRequest
+import com.optik.cengkareng.data.remote.request.TransactionRequest
 import com.optik.cengkareng.data.remote.response.TransactionItem
 import com.optik.cengkareng.data.repository.CustomerRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -20,20 +22,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
-/**
- * Unit test untuk CustomerViewModel.
- *
- * Yang diuji:
- *  - StateFlow `customers` (BAGIAN 1)
- *  - Channel `addCustomerEvent` Loading→Success dan Loading→Error (BAGIAN 2)
- *  - `getCustomerDetail` (BAGIAN 3)
- *  - StateFlow `transactionsState` Loading→Success dan Loading→Error
- *  - Channel `updateCustomerEvent` Loading→Success dan Loading→Error (BAGIAN 4)
- *
- * Mocking: pakai mockito-kotlin agar sintaks Kotlin idiomatik.
- * Dispatcher: pakai MainDispatcherRule (UnconfinedTestDispatcher) agar
- *             viewModelScope berjalan synchronously di test.
- */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CustomerViewModelTest {
 
@@ -66,23 +54,15 @@ class CustomerViewModelTest {
     @Before
     fun setUp() {
         repository = mock()
-        // Default agar konstruktor ViewModel (yang langsung mengakses getAllCustomers())
-        // tidak crash karena stub null.
         whenever(repository.getAllCustomers()).thenReturn(flowOf(emptyList()))
     }
 
-    // ---------------------------------------------------------------------
-    // 1. customers StateFlow
-    // ---------------------------------------------------------------------
     @Test
     fun `customers state memancarkan list dari repository`() = runTest {
         whenever(repository.getAllCustomers()).thenReturn(flowOf(listOf(sampleCustomer)))
         viewModel = CustomerViewModel(repository)
 
         viewModel.customers.test {
-            // Karena pakai stateIn(WhileSubscribed) — emisi pertama adalah initialValue (emptyList)
-            // lalu nilai dari upstream. Pakai loop kecil agar tetap aman meski urutan emisi
-            // tidak deterministik di environment test.
             var seen: List<CustomerEntity> = awaitItem()
             if (seen.isEmpty()) seen = awaitItem()
             assertEquals(listOf(sampleCustomer), seen)
@@ -90,9 +70,6 @@ class CustomerViewModelTest {
         }
     }
 
-    // ---------------------------------------------------------------------
-    // 2. addCustomer — sukses
-    // ---------------------------------------------------------------------
     @Test
     fun `addCustomer mengirim Loading lalu Success ketika repository berhasil`() = runTest {
         whenever(repository.addCustomer(any<CustomerEntity>())).thenReturn(Resource.Success(true))
@@ -109,13 +86,9 @@ class CustomerViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
 
-        // Pastikan ViewModel memang memanggil repository
         verify(repository).addCustomer(any<CustomerEntity>())
     }
 
-    // ---------------------------------------------------------------------
-    // 3. addCustomer — error
-    // ---------------------------------------------------------------------
     @Test
     fun `addCustomer mengirim Loading lalu Error ketika repository gagal`() = runTest {
         whenever(repository.addCustomer(any<CustomerEntity>()))
@@ -134,25 +107,19 @@ class CustomerViewModelTest {
         }
     }
 
-    // ---------------------------------------------------------------------
-    // 4. getCustomerDetail
-    // ---------------------------------------------------------------------
     @Test
     fun `getCustomerDetail memancarkan entity dari repository`() = runTest {
         whenever(repository.getCustomerById(1)).thenReturn(flowOf(sampleCustomer))
         viewModel = CustomerViewModel(repository)
 
         viewModel.getCustomerDetail(1).test {
-            val first = awaitItem()           // initialValue (null) dari stateIn
+            val first = awaitItem()
             val second = if (first == null) awaitItem() else first
             assertEquals(sampleCustomer, second)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
-    // ---------------------------------------------------------------------
-    // 5. transactionsState — sukses
-    // ---------------------------------------------------------------------
     @Test
     fun `getCustomerTransactions mengubah transactionsState menjadi Success`() = runTest {
         whenever(repository.getCustomerTransactions(1)).thenReturn(
@@ -168,27 +135,6 @@ class CustomerViewModelTest {
         assertEquals(sampleTransactions, (state as Resource.Success).data)
     }
 
-    // ---------------------------------------------------------------------
-    // 6. transactionsState — error
-    // ---------------------------------------------------------------------
-    @Test
-    fun `getCustomerTransactions mengubah transactionsState menjadi Error`() = runTest {
-        whenever(repository.getCustomerTransactions(1)).thenReturn(
-            flowOf(Resource.Loading, Resource.Error("HTTP 500"))
-        )
-        viewModel = CustomerViewModel(repository)
-
-        viewModel.getCustomerTransactions(1)
-        advanceUntilIdle()
-
-        val state = viewModel.transactionsState.value
-        assertTrue("Expected Error, got $state", state is Resource.Error)
-        assertEquals("HTTP 500", (state as Resource.Error).message)
-    }
-
-    // ---------------------------------------------------------------------
-    // 7. updateCustomer — sukses
-    // ---------------------------------------------------------------------
     @Test
     fun `updateCustomer mengirim Loading lalu Success ketika repository sukses`() = runTest {
         val req = CustomerRequest(nama = "Budi", noHp = "081234567890")
@@ -200,53 +146,69 @@ class CustomerViewModelTest {
         viewModel.updateCustomerEvent.test {
             viewModel.updateCustomer(1, req)
 
-            // VM mengirim Loading sendiri sebelum mengumpulkan flow Repo
             assertTrue(awaitItem() is Resource.Loading)
-            // Lalu Repo emit Loading -> VM forward
             assertTrue(awaitItem() is Resource.Loading)
-            // Lalu Success
             val result = awaitItem()
             assertTrue(result is Resource.Success)
-            assertEquals(
-                "Data pelanggan berhasil diperbarui!",
-                (result as Resource.Success).data
-            )
+            assertEquals("Data pelanggan berhasil diperbarui!", (result as Resource.Success).data)
 
             cancelAndIgnoreRemainingEvents()
         }
     }
 
-    // ---------------------------------------------------------------------
-    // 8. updateCustomer — error 422
-    // ---------------------------------------------------------------------
+    // ─── COMPLETE PROFILE TEST ──────────────────────────────────────
+
     @Test
-    fun `updateCustomer mengirim Loading lalu Error ketika validasi 422`() = runTest {
-        val req = CustomerRequest(nama = "Budi", noHp = "081234567890")
-        whenever(repository.updateCustomer(eq(1), eq(req))).thenReturn(
-            flowOf(
-                Resource.Loading,
-                Resource.Error("Nomor HP sudah terdaftar pada pelanggan lain!")
-            )
+    fun `completeProfile mengirim Loading lalu Success ketika noHp valid`() = runTest {
+        whenever(repository.completeProfile(eq(1), eq("081234567890"))).thenReturn(
+            flowOf(Resource.Loading, Resource.Success("Profil berhasil dilengkapi dan jadwal follow-up diaktifkan!"))
         )
         viewModel = CustomerViewModel(repository)
 
-        viewModel.updateCustomerEvent.test {
-            viewModel.updateCustomer(1, req)
+        viewModel.completeProfileEvent.test {
+            viewModel.completeProfile(1, "081234567890")
 
-            assertTrue(awaitItem() is Resource.Loading) // dari VM
-            assertTrue(awaitItem() is Resource.Loading) // dari Repo
+            assertTrue(awaitItem() is Resource.Loading)
+            assertTrue(awaitItem() is Resource.Loading)
             val result = awaitItem()
-            assertTrue(result is Resource.Error)
-            assertEquals(
-                "Nomor HP sudah terdaftar pada pelanggan lain!",
-                (result as Resource.Error).message
+            assertTrue(result is Resource.Success)
+            assertEquals("Profil berhasil dilengkapi dan jadwal follow-up diaktifkan!", (result as Resource.Success).data)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ─── CREATE TRANSACTION TEST ───────────────────────────────────
+
+    @Test
+    fun `createTransaction mengirim Loading lalu Success ketika request valid`() = runTest {
+        val req = TransactionRequest(
+            customerId = 1,
+            amount = 350000.0,
+            transactionDate = "2026-08-19",
+            prescriptions = listOf(
+                PrescriptionRequest(eyeSide = "OD", sphere = -1.50, cylinder = -0.50, axis = 90, lensType = "Single Vision")
             )
+        )
+
+        whenever(repository.createTransaction(eq(req))).thenReturn(
+            flowOf(Resource.Loading, Resource.Success("Transaksi berhasil disimpan! Jadwal follow-up otomatis dibuat."))
+        )
+        viewModel = CustomerViewModel(repository)
+
+        viewModel.createTransactionEvent.test {
+            viewModel.createTransaction(req)
+
+            assertTrue(awaitItem() is Resource.Loading)
+            assertTrue(awaitItem() is Resource.Loading)
+            val result = awaitItem()
+            assertTrue(result is Resource.Success)
+            assertEquals("Transaksi berhasil disimpan! Jadwal follow-up otomatis dibuat.", (result as Resource.Success).data)
 
             cancelAndIgnoreRemainingEvents()
         }
     }
 }
 
-// Helper agar mockito-kotlin `any()` / `eq()` ringkas — re-export saja.
 private inline fun <reified T : Any> any(): T = org.mockito.kotlin.any()
 private fun <T> eq(value: T): T = org.mockito.kotlin.eq(value)

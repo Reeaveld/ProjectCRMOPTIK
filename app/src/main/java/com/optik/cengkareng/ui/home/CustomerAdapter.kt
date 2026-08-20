@@ -3,6 +3,7 @@ package com.optik.cengkareng.ui.home
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -11,14 +12,12 @@ import com.optik.cengkareng.data.local.entity.CustomerEntity
 import com.optik.cengkareng.databinding.ItemCustomerBinding
 import kotlin.math.abs
 
-// 1. Parameter onCustomerClick ditambahkan di Konstruktor Utama
 class CustomerAdapter(
-    private val onCustomerClick: (Int) -> Unit
+    private val onCustomerClick: (CustomerEntity) -> Unit
 ) : ListAdapter<CustomerEntity, CustomerAdapter.CustomerViewHolder>(DiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CustomerViewHolder {
         val binding = ItemCustomerBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        // 2. onCustomerClick diteruskan ke ViewHolder
         return CustomerViewHolder(binding, onCustomerClick)
     }
 
@@ -27,16 +26,18 @@ class CustomerAdapter(
         holder.bind(item)
     }
 
-    // 3. Konstruktor ViewHolder menerima onCustomerClick
     class CustomerViewHolder(
         private val binding: ItemCustomerBinding,
-        private val onCustomerClick: (Int) -> Unit
+        private val onCustomerClick: (CustomerEntity) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(customer: CustomerEntity) {
-            // Set Data
             binding.tvNama.text = customer.nama
-            binding.tvNomorHp.text = customer.noHp
+
+            // No HP display logic
+            val hasPhone = !customer.noHp.isNullOrBlank() && !customer.noHp.startsWith("BPJS-")
+            binding.tvNomorHp.text = if (hasPhone) customer.noHp else "Belum ada No. HP"
+
             binding.tvJenisLensa.text = if (customer.jenisLensa.isNotEmpty()) customer.jenisLensa else "General"
 
             // Avatar Logic
@@ -47,22 +48,25 @@ class CustomerAdapter(
 
             binding.tvLastDate.text = "Baru"
 
-            // BPJS Penanda Logic
-            if (customer.noHp.startsWith("BPJS")) {
-                binding.root.setBackgroundColor(Color.parseColor("#FEF08A"))
+            // Profile Completeness Indicator
+            val isComplete = customer.isProfileComplete()
+            if (!isComplete) {
+                binding.tvIncompleteBadge.visibility = View.VISIBLE
+                binding.cardCustomer.strokeColor = Color.parseColor("#F59E0B") // Amber border
+                binding.cardCustomer.setCardBackgroundColor(Color.parseColor("#FFFBEB")) // Soft yellow bg
             } else {
-                binding.root.setBackgroundColor(Color.WHITE)
+                binding.tvIncompleteBadge.visibility = View.GONE
+                binding.cardCustomer.strokeColor = Color.parseColor("#E5E7EB")
+                binding.cardCustomer.setCardBackgroundColor(Color.WHITE)
             }
 
-            // 4. Klik dieksekusi dengan valid
             binding.root.setOnClickListener {
-                onCustomerClick(customer.id)
+                onCustomerClick(customer)
             }
         }
 
         private fun generateColorFromName(name: String): Int {
             val hash = abs(name.hashCode())
-            // Daftar warna-warna pastel "Professional" (Frappe/Trello/Jira style)
             val colors = listOf(
                 "#3B82F6", // Blue
                 "#EF4444", // Red

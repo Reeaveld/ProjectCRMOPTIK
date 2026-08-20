@@ -7,6 +7,8 @@ import com.optik.cengkareng.data.local.dao.CustomerDao
 import com.optik.cengkareng.data.local.entity.CustomerEntity
 import com.optik.cengkareng.data.remote.response.TransactionItem
 import com.optik.cengkareng.data.remote.request.CustomerRequest
+import com.optik.cengkareng.data.remote.request.CompleteProfileRequest
+import com.optik.cengkareng.data.remote.request.TransactionRequest
 import org.json.JSONObject
 import com.optik.cengkareng.data.remote.api.ApiService
 import kotlinx.coroutines.Dispatchers
@@ -21,41 +23,24 @@ class CustomerRepository @Inject constructor(
     private val apiService: ApiService
 ) {
 
-    // 1. Ambil data (Tidak berubah)
     fun getAllCustomers(): Flow<List<CustomerEntity>> = customerDao.getAllCustomers()
 
     fun getCustomerById(id: Int): Flow<CustomerEntity> = customerDao.getCustomerById(id)
 
-    // 2. Fungsi Simpan (UPDATE: Mengembalikan 'Resource' agar UI tahu statusnya)
     suspend fun addCustomer(customer: CustomerEntity): Resource<Boolean> {
-
-        // Kita pakai NonCancellable (Fitur bagus dari kodingan lama kamu)
         return withContext(Dispatchers.IO + NonCancellable) {
-
-            // A. Simpan ke Database Lokal (Selalu dilakukan)
             val localId = customerDao.insertCustomer(customer)
             Log.d("CRM_DEBUG", "Data tersimpan di Lokal ID: $localId")
 
-            // B. Coba Kirim ke Server
             try {
-                Log.d("CRM_DEBUG", "Mulai Upload ke: ${Constants.BASE_URL}")
-
                 val response = apiService.addCustomer(customer)
-
                 if (response.isSuccessful) {
-                    Log.d("CRM_DEBUG", "✅ SUKSES UPLOAD: ${response.body()}")
-                    // BEDANYA DISINI: Kita lapor 'Sukses' ke ViewModel
                     Resource.Success(true)
                 } else {
                     val errorMsg = response.errorBody()?.string() ?: "Unknown Error"
-                    Log.e("CRM_DEBUG", "❌ GAGAL SERVER: Kode ${response.code()} - $errorMsg")
-                    // BEDANYA DISINI: Kita lapor 'Error' ke ViewModel
                     Resource.Error("Gagal Server: $errorMsg")
                 }
             } catch (e: Exception) {
-                Log.e("CRM_DEBUG", "❌ ERROR JARINGAN: ${e.message}")
-                e.printStackTrace()
-                // BEDANYA DISINI: Kita lapor bahwa ini tersimpan Offline
                 Resource.Error("Tersimpan Offline (Jaringan Error)")
             }
         }
@@ -66,7 +51,6 @@ class CustomerRepository @Inject constructor(
         try {
             val response = apiService.getCustomerTransactions(id)
             if (response.isSuccessful) {
-                // Mengambil list transaksi dari dalam bungkus "data" JSON Laravel
                 val transactions = response.body()?.data ?: emptyList()
                 emit(Resource.Success(transactions))
             } else {
@@ -82,18 +66,13 @@ class CustomerRepository @Inject constructor(
         try {
             val response = apiService.updateCustomer(id, request)
             if (response.isSuccessful) {
-                // Berhasil diupdate
                 emit(Resource.Success("Data pelanggan berhasil diperbarui!"))
             } else {
-                // ANALISIS: Menangkap Validasi Error 422 dari Laravel
                 if (response.code() == 422) {
                     val errorBody = response.errorBody()?.string()
                     val errorMsg = try {
-                        // Membongkar JSON Error dari Laravel secara manual
                         val jsonObject = JSONObject(errorBody!!)
                         val errors = jsonObject.getJSONObject("errors")
-
-                        // Prioritas: no_hp (paling sering bentrok unique), lalu nama, lalu pesan umum
                         when {
                             errors.has("no_hp") -> errors.getJSONArray("no_hp").getString(0)
                             errors.has("nama")  -> errors.getJSONArray("nama").getString(0)
@@ -109,6 +88,58 @@ class CustomerRepository @Inject constructor(
             }
         } catch (e: Exception) {
             emit(Resource.Error(e.localizedMessage ?: "Terjadi kesalahan jaringan"))
+        }
+    }
+
+    /**
+     * Melengkapi nomor HP customer (Profil Belum Lengkap)
+     */
+    suspend fun completeProfile(id: Int, noHp: String): Flow<Resource<String>> = flow {
+        emit(Resource.Loading)
+        try {
+            val response = apiService.completeProfile(id, CompleteProfileRequest(noHp))
+            if (response.isSuccessful) {
+                emit(Resource.Success("Profil berhasil dilengkapi dan jadwal follow-up diaktifkan!"))
+            } else {
+                val errorMsg = parseErrorMessage(response.errorBody()?.string(), "Gagal melengkapi profil")
+                emit(Resource.Error(errorMsg))
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.localizedMessage ?: "Kesalahan jaringan"))
+        }
+    }
+
+    /**
+     * Memposting transaksi baru dengan resep kacamata (OD/OS)
+     */
+    suspend fun createTransaction(request: TransactionRequest): Flow<Resource<String>> = flow {
+        emit(Resource.Loading)
+        try {
+            val response = apiService.createTransaction(request)
+            if (response.isSuccessful) {
+                emit(Resource.Success("Transaksi berhasil disimpan! Jadwal follow-up otomatis dibuat."))
+            } else {
+                val errorMsg = parseErrorMessage(response.errorBody()?.string(), "Gagal menyimpan transaksi")
+                emit(Resource.Error(errorMsg))
+            }
+        } catch (e: Exception) {
+            emit(Resource.Error(e.localizedMessage ?: "Kesalahan jaringan"))
+        }
+    }
+
+    private fun parseErrorMessage(errorBody: String?, fallback: String): String {
+        if (errorBody.isNullOrBlank()) return fallback
+        return try {
+            val json = JSONObject(errorBody)
+            if (json.has("errors")) {
+                val errors = json.getJSONObject("errors")
+                val firstKey = errors.keys().next()
+                errors.getJSONArray(firstKey).getString(0)
+            } else {
+                json.optString("message", fallback)
+            }
+        } catch (e: Exception) {
+            fallback
         }
     }
 }

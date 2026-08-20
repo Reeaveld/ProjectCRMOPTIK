@@ -46,6 +46,21 @@
         <action
             android:id="@+id/action_customerDetailFragment_to_inputCustomerFragment"
             app:destination="@id/inputCustomerFragment" />
+
+        <action
+            android:id="@+id/action_customerDetailFragment_to_inputTransactionFragment"
+            app:destination="@id/inputTransactionFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/inputTransactionFragment"
+        android:name="com.optik.cengkareng.ui.input.InputTransactionFragment"
+        android:label="Input Transaksi"
+        tools:layout="@layout/fragment_input_transaction">
+
+        <argument
+            android:name="customerId"
+            app:argType="integer" />
     </fragment>
 
     <!-- Tujuan navigasi untuk tab "Profil" di BottomNavigationView -->
