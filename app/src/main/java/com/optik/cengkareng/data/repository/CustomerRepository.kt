@@ -46,7 +46,7 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    suspend fun getCustomerTransactions(id: Int): Flow<Resource<List<TransactionItem>>> = flow {
+    fun getCustomerTransactions(id: Int): Flow<Resource<List<TransactionItem>>> = flow {
         emit(Resource.Loading)
         try {
             val response = apiService.getCustomerTransactions(id)
@@ -61,7 +61,7 @@ class CustomerRepository @Inject constructor(
         }
     }
 
-    suspend fun updateCustomer(id: Int, request: CustomerRequest): Flow<Resource<String>> = flow {
+    fun updateCustomer(id: Int, request: CustomerRequest): Flow<Resource<String>> = flow {
         emit(Resource.Loading)
         try {
             val response = apiService.updateCustomer(id, request)
@@ -94,7 +94,7 @@ class CustomerRepository @Inject constructor(
     /**
      * Melengkapi nomor HP customer (Profil Belum Lengkap)
      */
-    suspend fun completeProfile(id: Int, noHp: String): Flow<Resource<String>> = flow {
+    fun completeProfile(id: Int, noHp: String): Flow<Resource<String>> = flow {
         emit(Resource.Loading)
         try {
             val response = apiService.completeProfile(id, CompleteProfileRequest(noHp))
@@ -112,7 +112,7 @@ class CustomerRepository @Inject constructor(
     /**
      * Memposting transaksi baru dengan resep kacamata (OD/OS)
      */
-    suspend fun createTransaction(request: TransactionRequest): Flow<Resource<String>> = flow {
+    fun createTransaction(request: TransactionRequest): Flow<Resource<String>> = flow {
         emit(Resource.Loading)
         try {
             val response = apiService.createTransaction(request)

@@ -43,6 +43,7 @@ data class CustomerEntity(
         }
         val phone = noHp
         if (phone.isNullOrBlank()) return false
+        // Defensive guard: dipertahankan untuk backward-compat dengan data lama di database
         if (phone.startsWith("BPJS-")) return false
         val cleaned = phone.replace(Regex("[^0-9+]"), "")
         return Regex("^(\\+62|62|0)8[0-9]{7,12}$").matches(cleaned)
