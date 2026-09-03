@@ -1,29 +1,26 @@
 package com.optik.cengkareng.ui.profile
 
-import android.content.pm.PackageManager
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.optik.cengkareng.databinding.FragmentProfileBinding
+import com.optik.cengkareng.features.auth.presentation.AuthViewModel
+import com.optik.cengkareng.features.auth.presentation.LoginActivity
+import dagger.hilt.android.AndroidEntryPoint
 
-/**
- * Halaman Profil minimal — placeholder yang sudah rapi.
- *
- * Status implementasi:
- * - Tidak ada Hilt/ViewModel di sini (memang belum dibutuhkan).
- * - Menampilkan nama aplikasi, tagline, info akun statis ("Admin Optik"),
- *   dan versi aplikasi dari PackageInfo.
- * - Slot siap dipakai saat fitur Auth (login/logout) diimplementasikan.
- *
- * Jika nanti ada Auth: tinggal inject AuthRepository / SessionManager,
- * isi tvUserName + tvUserStatus dari data sesi, tambahkan tombol Logout.
- */
+@AndroidEntryPoint
 class ProfileFragment : Fragment() {
 
     private var _binding: FragmentProfileBinding? = null
     private val binding get() = _binding!!
+
+    private val authViewModel: AuthViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -36,7 +33,34 @@ class ProfileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        renderUserInfo()
         renderVersion()
+        setupListeners()
+    }
+
+    private fun renderUserInfo() {
+        binding.tvUserName.text = authViewModel.getAdminName()
+        binding.tvUserEmail.text = authViewModel.getAdminEmail()
+    }
+
+    private fun setupListeners() {
+        binding.btnLogout.setOnClickListener {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Keluar dari Aplikasi")
+                .setMessage("Apakah Anda yakin ingin keluar dari sesi admin OptikCRM?")
+                .setPositiveButton("Keluar") { _, _ ->
+                    authViewModel.logout {
+                        Toast.makeText(requireContext(), "Berhasil keluar", Toast.LENGTH_SHORT).show()
+                        val intent = Intent(requireActivity(), LoginActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                        startActivity(intent)
+                        requireActivity().finish()
+                    }
+                }
+                .setNegativeButton("Batal", null)
+                .show()
+        }
     }
 
     private fun renderVersion() {

@@ -17,11 +17,16 @@
         android:theme="@style/Theme.OptikCRM"
         tools:targetApi="31">
 
-        <!-- Ganti .MainActivity menjadi com.optik.cengkareng.MainActivity -->
+        <activity
+            android:name=".features.auth.presentation.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OptikCRM"
+            android:windowSoftInputMode="adjustResize" />
+
         <activity
             android:name="com.optik.cengkareng.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.OptikCRM"> <!-- Tambahkan theme eksplisit disini juga -->
+            android:theme="@style/Theme.OptikCRM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

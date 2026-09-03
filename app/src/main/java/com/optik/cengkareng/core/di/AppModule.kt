@@ -25,12 +25,13 @@ object AppModule {
     // 1. Setup Retrofit (Internet)
     @Provides
     @Singleton
-    fun provideRetrofit(): Retrofit {
+    fun provideRetrofit(authInterceptor: com.optik.cengkareng.core.network.AuthInterceptor): Retrofit {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
         val client = OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
             .addInterceptor(logging)
             // Menggunakan timeout dari Constants agar lebih robust
             .connectTimeout(Constants.CONNECT_TIMEOUT, TimeUnit.SECONDS)

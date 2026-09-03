@@ -45,10 +45,38 @@ class InputTransactionFragment : Fragment() {
         val customerId = args.customerId
 
         setupObserver()
+        setupDatePicker()
 
         binding.btnSaveTransaction.setOnClickListener {
             submitTransaction(customerId)
         }
+    }
+
+    private fun setupDatePicker() {
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        binding.etTransactionDate.setText(today)
+
+        val calendar = java.util.Calendar.getInstance()
+        val dateListener = android.app.DatePickerDialog.OnDateSetListener { _, year, month, dayOfMonth ->
+            calendar.set(java.util.Calendar.YEAR, year)
+            calendar.set(java.util.Calendar.MONTH, month)
+            calendar.set(java.util.Calendar.DAY_OF_MONTH, dayOfMonth)
+            val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            binding.etTransactionDate.setText(format.format(calendar.time))
+        }
+
+        val showDatePicker = View.OnClickListener {
+            android.app.DatePickerDialog(
+                requireContext(),
+                dateListener,
+                calendar.get(java.util.Calendar.YEAR),
+                calendar.get(java.util.Calendar.MONTH),
+                calendar.get(java.util.Calendar.DAY_OF_MONTH)
+            ).show()
+        }
+
+        binding.etTransactionDate.setOnClickListener(showDatePicker)
+        binding.tilTransactionDate.setEndIconOnClickListener(showDatePicker)
     }
 
     private fun submitTransaction(customerId: Int) {
@@ -68,7 +96,9 @@ class InputTransactionFragment : Fragment() {
             return
         }
 
-        val todayDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val selectedDate = binding.etTransactionDate.text.toString().ifBlank {
+            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        }
 
         val prescriptions = listOf(
             PrescriptionRequest(eyeSide = "OD", sphere = odSph, cylinder = odCyl, axis = odAxis, lensType = lensType),
@@ -78,7 +108,7 @@ class InputTransactionFragment : Fragment() {
         val request = TransactionRequest(
             customerId = customerId,
             amount = amount,
-            transactionDate = todayDate,
+            transactionDate = selectedDate,
             prescriptions = prescriptions
         )
 

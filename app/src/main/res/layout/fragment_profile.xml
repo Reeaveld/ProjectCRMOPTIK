@@ -85,18 +85,39 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Admin Optik"
-                    android:textColor="#424242"
-                    android:textSize="14sp"
+                    android:textColor="#212121"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
                     android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:id="@+id/tvUserEmail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="admin@optikcrm.com"
+                    android:textColor="#616161"
+                    android:textSize="13sp"
+                    android:layout_marginTop="2dp" />
 
                 <TextView
                     android:id="@+id/tvUserStatus"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Mode lokal — fitur login akan tersedia di sprint berikutnya."
-                    android:textColor="#9E9E9E"
+                    android:text="Status: Sesi Terautentikasi (Laravel Sanctum)"
+                    android:textColor="#16A34A"
                     android:textSize="12sp"
-                    android:layout_marginTop="2dp" />
+                    android:layout_marginTop="6dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLogout"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="Keluar (Logout)"
+                    android:textColor="#DC2626"
+                    app:strokeColor="#DC2626"
+                    android:layout_marginTop="16dp"
+                    app:cornerRadius="8dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

@@ -13,7 +13,16 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 
+import com.optik.cengkareng.data.remote.request.LoginRequest
+import com.optik.cengkareng.data.remote.response.LoginResponse
+
 interface ApiService {
+    @POST("login")
+    suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+
+    @POST("logout")
+    suspend fun logout(): Response<Any>
+
     @GET("customers")
     suspend fun getCustomers(): Response<List<CustomerEntity>>
 

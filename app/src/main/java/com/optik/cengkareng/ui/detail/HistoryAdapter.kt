@@ -5,18 +5,24 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.optik.cengkareng.data.remote.response.TransactionItem
 import com.optik.cengkareng.databinding.ItemHistoryBinding
 
-class HistoryAdapter : RecyclerView.Adapter<HistoryAdapter.HistoryViewHolder>() {
+class HistoryAdapter : ListAdapter<TransactionItem, HistoryAdapter.HistoryViewHolder>(DIFF_CALLBACK) {
 
-    private val transactions = mutableListOf<TransactionItem>()
+    companion object {
+        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<TransactionItem>() {
+            override fun areItemsTheSame(oldItem: TransactionItem, newItem: TransactionItem): Boolean {
+                return oldItem.id == newItem.id
+            }
 
-    fun submitList(newList: List<TransactionItem>) {
-        transactions.clear()
-        transactions.addAll(newList)
-        notifyDataSetChanged()
+            override fun areContentsTheSame(oldItem: TransactionItem, newItem: TransactionItem): Boolean {
+                return oldItem == newItem
+            }
+        }
     }
 
     class HistoryViewHolder(val binding: ItemHistoryBinding) : RecyclerView.ViewHolder(binding.root)
@@ -27,10 +33,9 @@ class HistoryAdapter : RecyclerView.Adapter<HistoryAdapter.HistoryViewHolder>() 
     }
 
     override fun onBindViewHolder(holder: HistoryViewHolder, position: Int) {
-        val transaction = transactions[position]
+        val transaction = getItem(position)
 
         holder.binding.apply {
-            // Mapping ID sesuai dengan item_history.xml secara valid
             tvTanggal.text = transaction.dateFormatted
             tvInvoiceId.text = transaction.invoice
             tvHarga.text = transaction.amountFormatted
@@ -40,7 +45,6 @@ class HistoryAdapter : RecyclerView.Adapter<HistoryAdapter.HistoryViewHolder>() 
             try {
                 val color = Color.parseColor(transaction.statusColor)
                 tvStatus.setTextColor(color)
-                // Mengatur warna latar (backgroundTint) dengan alpha 20% agar transparan
                 tvStatus.backgroundTintList = ColorStateList.valueOf(color).withAlpha(51)
             } catch (e: Exception) {
                 // Abaikan jika hex color dari server invalid (tetap gunakan default XML)
@@ -49,7 +53,6 @@ class HistoryAdapter : RecyclerView.Adapter<HistoryAdapter.HistoryViewHolder>() 
             // Logika Ekstraksi Resep untuk tvResepRingkas
             if (transaction.prescriptions.isNotEmpty()) {
                 val resepText = buildString {
-                    // Mencari lensa Kanan (OD) dan Kiri (OS) dari list resep
                     val rightEye = transaction.prescriptions.find { it.sideCode == "OD" }
                     val leftEye = transaction.prescriptions.find { it.sideCode == "OS" }
 
@@ -57,7 +60,6 @@ class HistoryAdapter : RecyclerView.Adapter<HistoryAdapter.HistoryViewHolder>() 
                     if (rightEye != null && leftEye != null) append("| ")
                     if (leftEye != null) append("L: ${leftEye.sph}")
 
-                    // Menambahkan Tipe Lensa jika ada (mengambil dari salah satu mata)
                     val lensType = rightEye?.lensType ?: leftEye?.lensType
                     if (!lensType.isNullOrEmpty()) {
                         append(" ($lensType)")
@@ -66,12 +68,8 @@ class HistoryAdapter : RecyclerView.Adapter<HistoryAdapter.HistoryViewHolder>() 
                 tvResepRingkas.text = resepText.trim()
                 tvResepRingkas.visibility = View.VISIBLE
             } else {
-                // Skenario untuk Data Import BPJS yang tidak memiliki data lensa
                 tvResepRingkas.text = "Penjualan Frame / Tanpa Resep"
-                // Atau bisa juga kita hilangkan dengan: tvResepRingkas.visibility = View.GONE
             }
         }
     }
-
-    override fun getItemCount() = transactions.size
 }
