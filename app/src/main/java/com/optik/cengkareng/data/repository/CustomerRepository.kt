@@ -27,6 +27,21 @@ class CustomerRepository @Inject constructor(
 
     fun getCustomerById(id: Int): Flow<CustomerEntity> = customerDao.getCustomerById(id)
 
+    suspend fun syncCustomers(): Resource<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getCustomers()
+            if (response.isSuccessful && response.body() != null) {
+                val remoteCustomers = response.body()!!
+                customerDao.insertAll(remoteCustomers)
+                Resource.Success(true)
+            } else {
+                Resource.Error("Gagal sinkronisasi data pelanggan dari server: ${response.message()}")
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Kesalahan jaringan saat sinkronisasi.")
+        }
+    }
+
     suspend fun addCustomer(customer: CustomerEntity): Resource<Boolean> {
         return withContext(Dispatchers.IO + NonCancellable) {
             val localId = customerDao.insertCustomer(customer)

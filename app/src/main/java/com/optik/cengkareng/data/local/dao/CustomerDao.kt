@@ -19,6 +19,10 @@ interface CustomerDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCustomer(customer: CustomerEntity)
 
+    // Insert banyak pelanggan sekaligus (Batch Sync)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(customers: List<CustomerEntity>)
+
     // Contoh query tambahan: Cari berdasarkan nama (untuk fitur Search nanti)
     @Query("SELECT * FROM customers WHERE nama LIKE '%' || :query || '%'")
     fun searchCustomers(query: String): Flow<List<CustomerEntity>>

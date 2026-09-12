@@ -41,6 +41,10 @@ class InputCustomerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        binding.toolbar.setNavigationOnClickListener {
+            findNavController().popBackStack()
+        }
+
         val customerId = args.customerId
 
         // 2. DYNAMIC UI ROUTING (Ala Frappe / Monica)

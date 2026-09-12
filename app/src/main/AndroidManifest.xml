@@ -24,6 +24,12 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".features.import_bpjs.presentation.BpjsImportActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OptikCRM"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name="com.optik.cengkareng.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.OptikCRM">
@@ -32,6 +38,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

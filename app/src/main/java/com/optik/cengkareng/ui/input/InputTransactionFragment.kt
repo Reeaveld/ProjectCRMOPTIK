@@ -44,6 +44,10 @@ class InputTransactionFragment : Fragment() {
 
         val customerId = args.customerId
 
+        binding.btnBack.setOnClickListener {
+            findNavController().popBackStack()
+        }
+
         setupObserver()
         setupDatePicker()
 

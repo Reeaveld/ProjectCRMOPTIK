@@ -33,6 +33,12 @@ class CustomerViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
+    fun syncCustomers() {
+        viewModelScope.launch {
+            repository.syncCustomers()
+        }
+    }
+
     // --- TAMBAH PELANGGAN ---
     private val _addCustomerEvent = Channel<Resource<Boolean>>()
     val addCustomerEvent = _addCustomerEvent.receiveAsFlow()

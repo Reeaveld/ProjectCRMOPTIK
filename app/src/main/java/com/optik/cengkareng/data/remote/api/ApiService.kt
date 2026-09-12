@@ -56,4 +56,21 @@ interface ApiService {
     suspend fun createTransaction(
         @Body request: TransactionRequest
     ): Response<Any>
+
+    /**
+     * Endpoint Tahap 1: Upload PDF dan ekstrak data staging untuk ditinjau
+     */
+    @retrofit2.http.Multipart
+    @POST("import/bpjs/parse")
+    suspend fun parseBpjsPdf(
+        @retrofit2.http.Part file: okhttp3.MultipartBody.Part
+    ): Response<com.optik.cengkareng.data.remote.model.BpjsParseResponse>
+
+    /**
+     * Endpoint Tahap 2: Konfirmasi commit data yang telah ditinjau ke database
+     */
+    @POST("import/bpjs/commit")
+    suspend fun commitBpjs(
+        @Body request: com.optik.cengkareng.data.remote.model.BpjsCommitRequest
+    ): Response<com.optik.cengkareng.data.remote.model.BpjsCommitResponse>
 }
