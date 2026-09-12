@@ -38,9 +38,13 @@ object AppModule {
             .readTimeout(Constants.READ_TIMEOUT, TimeUnit.SECONDS)
             .build()
 
+        val gson = com.google.gson.GsonBuilder()
+            .setLenient()
+            .create()
+
         return Retrofit.Builder()
             .baseUrl(Constants.BASE_URL) // Menggunakan BASE_URL dari Constants
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .client(client)
             .build()
     }

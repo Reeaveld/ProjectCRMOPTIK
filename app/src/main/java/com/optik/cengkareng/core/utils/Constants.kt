@@ -9,6 +9,6 @@ object Constants {
     const val DATABASE_NAME = "optikcrm"
 
     // Timeout untuk Retrofit (dalam detik)
-    const val CONNECT_TIMEOUT = 30L
-    const val READ_TIMEOUT = 30L
+    const val CONNECT_TIMEOUT = 60L
+    const val READ_TIMEOUT = 60L
 }
