@@ -1,11 +1,15 @@
 package com.optik.cengkareng.features.import_bpjs.presentation
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.os.Environment
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
@@ -14,9 +18,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.optik.cengkareng.core.network.AuthInterceptor
 import com.optik.cengkareng.core.utils.Resource
 import com.optik.cengkareng.data.remote.model.BpjsMetadata
 import com.optik.cengkareng.databinding.ActivityBpjsImportBinding
+import com.optik.cengkareng.features.auth.presentation.LoginActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -24,6 +30,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.text.NumberFormat
 import java.util.Locale
+
 
 @AndroidEntryPoint
 class BpjsImportActivity : AppCompatActivity() {
@@ -33,6 +40,24 @@ class BpjsImportActivity : AppCompatActivity() {
     private lateinit var previewAdapter: BpjsPreviewAdapter
 
     private var isAllSelected = true
+
+    /**
+     * Receiver untuk menangani session expired (401) dari AuthInterceptor.
+     */
+    private val sessionExpiredReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Toast.makeText(
+                this@BpjsImportActivity,
+                "Sesi Anda telah berakhir, silakan login kembali.",
+                Toast.LENGTH_LONG
+            ).show()
+            val loginIntent = Intent(this@BpjsImportActivity, LoginActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            startActivity(loginIntent)
+            finish()
+        }
+    }
 
     companion object {
         const val EXTRA_PDF_PATH = "extra_pdf_path"
@@ -62,6 +87,24 @@ class BpjsImportActivity : AppCompatActivity() {
             Toast.makeText(this, "Path PDF tidak valid.", Toast.LENGTH_SHORT).show()
             finish()
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val filter = IntentFilter(AuthInterceptor.ACTION_SESSION_EXPIRED)
+        ContextCompat.registerReceiver(
+            this,
+            sessionExpiredReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    }
+
+    override fun onStop() {
+        super.onStop()
+        try {
+            unregisterReceiver(sessionExpiredReceiver)
+        } catch (_: IllegalArgumentException) { }
     }
 
     private fun setupToolbar() {

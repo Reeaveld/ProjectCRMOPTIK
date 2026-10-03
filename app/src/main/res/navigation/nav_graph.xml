@@ -63,6 +63,18 @@
             app:argType="integer" />
     </fragment>
 
+    <!-- Tujuan navigasi untuk tab "Dashboard" di BottomNavigationView -->
+    <fragment
+        android:id="@+id/dashboardFragment"
+        android:name="com.optik.cengkareng.ui.dashboard.DashboardFragment"
+        android:label="Dashboard Analytics"
+        tools:layout="@layout/fragment_dashboard">
+
+        <action
+            android:id="@+id/action_dashboardFragment_to_customerDetailFragment"
+            app:destination="@id/customerDetailFragment" />
+    </fragment>
+
     <!-- Tujuan navigasi untuk tab "Profil" di BottomNavigationView -->
     <fragment
         android:id="@+id/profileFragment"

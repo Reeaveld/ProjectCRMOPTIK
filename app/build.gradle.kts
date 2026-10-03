@@ -26,12 +26,19 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Emulator: 10.0.2.2 → localhost komputer. HP fisik: ganti IP sesuai WiFi.
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8000/api/\"")
+        }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // TODO: Ganti dengan domain production Anda
+            buildConfigField("String", "BASE_URL", "\"https://api.optik-cengkareng.com/api/\"")
         }
     }
     compileOptions {
@@ -44,6 +51,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 
@@ -93,6 +101,10 @@ dependencies {
 
     // Image Loading
     implementation("com.github.bumptech.glide:glide:4.16.0")
+
+    // Charts & Analytics UI
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

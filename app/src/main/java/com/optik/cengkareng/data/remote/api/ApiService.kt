@@ -73,4 +73,22 @@ interface ApiService {
     suspend fun commitBpjs(
         @Body request: com.optik.cengkareng.data.remote.model.BpjsCommitRequest
     ): Response<com.optik.cengkareng.data.remote.model.BpjsCommitResponse>
+
+    /**
+     * Dashboard Analytics & Statistics API
+     */
+    @GET("dashboard/stats")
+    suspend fun getDashboardStats(
+        @retrofit2.http.Query("from") from: String,
+        @retrofit2.http.Query("to") to: String
+    ): Response<com.optik.cengkareng.data.remote.model.DashboardStatsResponse>
+
+    /**
+     * Pencarian Pelanggan berdasarkan Tanggal Transaksi
+     */
+    @GET("customers/search")
+    suspend fun searchCustomersByDate(
+        @retrofit2.http.Query("from") from: String,
+        @retrofit2.http.Query("to") to: String
+    ): Response<com.optik.cengkareng.data.remote.model.CustomerSearchResultResponse>
 }
