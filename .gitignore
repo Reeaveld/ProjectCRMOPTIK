@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Dokumen Skripsi, Proposal, dan Histori AI (Sensitif / Non-Code)
+/Tugas Akhir/
+/histori_chat_AI/

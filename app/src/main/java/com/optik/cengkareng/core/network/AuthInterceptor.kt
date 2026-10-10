@@ -35,9 +35,10 @@ class AuthInterceptor @Inject constructor(
 
         val response = chain.proceed(requestBuilder.build())
 
-        // Jika server mengembalikan 401 Unauthorized, token sudah expired/revoked.
-        // Bersihkan kredensial lokal dan broadcast event agar UI redirect ke Login.
-        if (response.code == 401) {
+        // Jika server mengembalikan 401 Unauthorized pada request terautentikasi (bukan login),
+        // maka token sudah expired/revoked. Bersihkan kredensial lokal dan broadcast event redirect.
+        val isLoginRequest = originalRequest.url.encodedPath.endsWith("login")
+        if (response.code == 401 && !isLoginRequest && !token.isNullOrBlank()) {
             tokenManager.clear()
             val intent = Intent(ACTION_SESSION_EXPIRED).apply {
                 setPackage(context.packageName) // Explicit broadcast, hanya app ini yang terima

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -25,10 +27,17 @@ android {
         }
     }
 
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(localPropertiesFile.inputStream())
+    }
+    val debugBaseUrl: String = localProperties.getProperty("API_BASE_URL") ?: "https://api.crmoptik.com/api/"
+
     buildTypes {
         debug {
-            // Emulator: 10.0.2.2 → localhost komputer. HP fisik: ganti IP sesuai WiFi.
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8000/api/\"")
+            // Membaca dari local.properties (jika diisi API_BASE_URL), fallback ke domain https://api.crmoptik.com/api/
+            buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
         }
         release {
             isMinifyEnabled = true
@@ -37,8 +46,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // TODO: Ganti dengan domain production Anda
-            buildConfigField("String", "BASE_URL", "\"https://api.optik-cengkareng.com/api/\"")
+            buildConfigField("String", "BASE_URL", "\"https://api.crmoptik.com/api/\"")
         }
     }
     compileOptions {
@@ -71,6 +79,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Navigation Component
     val navVersion = "2.7.7"

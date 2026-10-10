@@ -39,10 +39,21 @@ class InputTransactionFragment : Fragment() {
         return binding.root
     }
 
+    private var resolvedRemoteCustomerId: Int? = null
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val customerId = args.customerId
+
+        // Ambil data pelanggan lokal untuk memastikan remoteId server tersedia
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.getCustomerDetail(customerId).collectLatest { customer ->
+                if (customer != null) {
+                    resolvedRemoteCustomerId = customer.remoteId ?: customer.id
+                }
+            }
+        }
 
         binding.btnBack.setOnClickListener {
             findNavController().popBackStack()
@@ -109,8 +120,11 @@ class InputTransactionFragment : Fragment() {
             PrescriptionRequest(eyeSide = "OS", sphere = osSph, cylinder = osCyl, axis = osAxis, lensType = lensType)
         )
 
+        // Gunakan remoteId server agar transaksi terikat ke pelanggan yang tepat di server
+        val targetServerCustomerId = resolvedRemoteCustomerId ?: customerId
+
         val request = TransactionRequest(
-            customerId = customerId,
+            customerId = targetServerCustomerId,
             amount = amount,
             transactionDate = selectedDate,
             prescriptions = prescriptions

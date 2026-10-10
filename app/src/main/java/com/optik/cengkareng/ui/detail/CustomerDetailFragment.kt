@@ -42,9 +42,6 @@ class CustomerDetailFragment : Fragment() {
 
         val customerId = args.customerId
 
-        // Memanggil API Laravel untuk mengambil riwayat transaksi
-        viewModel.getCustomerTransactions(customerId)
-
         // Setup Toolbar Back Button
         binding.toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
@@ -54,6 +51,10 @@ class CustomerDetailFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.getCustomerDetail(customerId).collectLatest { customer ->
                 if (customer != null) {
+                    // Panggil API Laravel menggunakan remoteId server
+                    val targetServerId = customer.remoteId ?: customer.id
+                    viewModel.getCustomerTransactions(targetServerId)
+
                     // 1. Update Header (Bagian Atas)
                     binding.tvNamaDetail.text = customer.nama
                     binding.tvHpDetail.text = customer.noHp

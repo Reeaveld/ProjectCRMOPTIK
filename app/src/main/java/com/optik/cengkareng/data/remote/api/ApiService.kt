@@ -24,10 +24,10 @@ interface ApiService {
     suspend fun logout(): Response<Any>
 
     @GET("customers")
-    suspend fun getCustomers(): Response<List<CustomerEntity>>
+    suspend fun getCustomers(): Response<List<com.optik.cengkareng.data.remote.response.CustomerResponse>>
 
     @POST("customers")
-    suspend fun addCustomer(@Body customer: CustomerEntity): Response<CustomerEntity>
+    suspend fun addCustomer(@Body request: CustomerRequest): Response<com.optik.cengkareng.data.remote.response.CustomerResponse>
 
     @GET("customers/{id}/transactions")
     suspend fun getCustomerTransactions(

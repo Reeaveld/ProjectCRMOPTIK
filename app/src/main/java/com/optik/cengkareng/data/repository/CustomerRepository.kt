@@ -32,7 +32,45 @@ class CustomerRepository @Inject constructor(
             val response = apiService.getCustomers()
             if (response.isSuccessful && response.body() != null) {
                 val remoteCustomers = response.body()!!
-                customerDao.insertAll(remoteCustomers)
+                val serverRemoteIds = mutableListOf<Int>()
+
+                for (remote in remoteCustomers) {
+                    serverRemoteIds.add(remote.id)
+                    val existing = customerDao.getCustomerByRemoteId(remote.id)
+                    if (existing != null) {
+                        val updated = existing.copy(
+                            nama = remote.nama,
+                            noHp = remote.noHp,
+                            jenisLensa = remote.jenisLensa ?: existing.jenisLensa,
+                            ukuranKiri = remote.ukuranKiri ?: existing.ukuranKiri,
+                            ukuranKanan = remote.ukuranKanan ?: existing.ukuranKanan,
+                            lastFollowUp = remote.lastFollowUp ?: existing.lastFollowUp,
+                            isProfileCompleteBackend = remote.isProfileComplete,
+                            isSynced = true
+                        )
+                        customerDao.updateCustomer(updated)
+                    } else {
+                        val newEntity = CustomerEntity(
+                            id = 0,
+                            remoteId = remote.id,
+                            nama = remote.nama,
+                            noHp = remote.noHp,
+                            jenisLensa = remote.jenisLensa ?: "General",
+                            ukuranKiri = remote.ukuranKiri ?: "0.00",
+                            ukuranKanan = remote.ukuranKanan ?: "0.00",
+                            lastFollowUp = remote.lastFollowUp ?: 0L,
+                            isProfileCompleteBackend = remote.isProfileComplete,
+                            isSynced = true
+                        )
+                        customerDao.insertCustomer(newEntity)
+                    }
+                }
+
+                // Bersihkan record lokal yang sudah pernah tersinkron tapi telah dihapus di server
+                if (serverRemoteIds.isNotEmpty()) {
+                    customerDao.deleteRemovedServerCustomers(serverRemoteIds)
+                }
+
                 Resource.Success(true)
             } else {
                 Resource.Error("Gagal sinkronisasi data pelanggan dari server: ${response.message()}")
@@ -44,12 +82,21 @@ class CustomerRepository @Inject constructor(
 
     suspend fun addCustomer(customer: CustomerEntity): Resource<Boolean> {
         return withContext(Dispatchers.IO + NonCancellable) {
-            val localId = customerDao.insertCustomer(customer)
+            val localId = customerDao.insertCustomer(customer.copy(isSynced = false))
             Log.d("CRM_DEBUG", "Data tersimpan di Lokal ID: $localId")
 
             try {
-                val response = apiService.addCustomer(customer)
-                if (response.isSuccessful) {
+                val request = CustomerRequest(
+                    nama = customer.nama,
+                    noHp = customer.noHp ?: "",
+                    jenisLensa = customer.jenisLensa,
+                    ukuranKiri = customer.ukuranKiri,
+                    ukuranKanan = customer.ukuranKanan
+                )
+                val response = apiService.addCustomer(request)
+                if (response.isSuccessful && response.body() != null) {
+                    val serverCustomer = response.body()!!
+                    customerDao.updateRemoteId(localId.toInt(), serverCustomer.id)
                     Resource.Success(true)
                 } else {
                     val errorMsg = response.errorBody()?.string() ?: "Unknown Error"

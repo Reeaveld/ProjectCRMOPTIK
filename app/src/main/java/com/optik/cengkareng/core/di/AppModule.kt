@@ -27,7 +27,12 @@ object AppModule {
     @Singleton
     fun provideRetrofit(authInterceptor: com.optik.cengkareng.core.network.AuthInterceptor): Retrofit {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (com.optik.cengkareng.BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.HEADERS
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
+            redactHeader("Authorization")
         }
 
         val client = OkHttpClient.Builder()
