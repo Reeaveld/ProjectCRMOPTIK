@@ -1,7 +1,0 @@
-Contoh 1 : RAG + Same advisor (Main)
-Contoh 2 : RAG
-Contoh 3 : RAG
-Contoh 4 : Mobile App
-Contoh 5 : RAG + RAGAS
-Contoh 6 : Same Advisor (Main)
-Contoh 7 : Same Advisor (Both)
