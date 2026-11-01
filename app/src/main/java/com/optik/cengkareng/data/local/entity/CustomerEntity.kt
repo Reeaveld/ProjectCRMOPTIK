@@ -1,10 +1,16 @@
 package com.optik.cengkareng.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 
-@Entity(tableName = "customers")
+@Entity(
+    tableName = "customers",
+    indices = [
+        Index(value = ["remoteId"], unique = true)
+    ]
+)
 data class CustomerEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,

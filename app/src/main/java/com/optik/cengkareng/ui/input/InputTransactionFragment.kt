@@ -8,7 +8,9 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.optik.cengkareng.core.utils.Resource
@@ -32,6 +34,8 @@ class InputTransactionFragment : Fragment() {
     private val args: InputTransactionFragmentArgs by navArgs()
     private val viewModel: CustomerViewModel by activityViewModels()
 
+    private var resolvedRemoteCustomerId: Int? = null
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -39,18 +43,33 @@ class InputTransactionFragment : Fragment() {
         return binding.root
     }
 
-    private var resolvedRemoteCustomerId: Int? = null
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val customerId = args.customerId
 
+        // Default state: disable sampai verifikasi remoteId selesai
+        binding.btnSaveTransaction.isEnabled = false
+
         // Ambil data pelanggan lokal untuk memastikan remoteId server tersedia
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.getCustomerDetail(customerId).collectLatest { customer ->
-                if (customer != null) {
-                    resolvedRemoteCustomerId = customer.remoteId ?: customer.id
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.getCustomerDetail(customerId).collect { customer ->
+                    if (customer != null) {
+                        resolvedRemoteCustomerId = customer.remoteId
+
+                        if (customer.remoteId == null) {
+                            binding.btnSaveTransaction.isEnabled = false
+                            binding.btnSaveTransaction.alpha = 0.5f
+                            binding.tvSyncWarning.isVisible = true
+                            binding.tvSyncWarning.text =
+                                "Pelanggan belum tersinkron ke server. Mohon tunggu proses sinkronisasi selesai sebelum menambahkan transaksi."
+                        } else {
+                            binding.btnSaveTransaction.isEnabled = true
+                            binding.btnSaveTransaction.alpha = 1.0f
+                            binding.tvSyncWarning.isVisible = false
+                        }
+                    }
                 }
             }
         }
@@ -63,7 +82,7 @@ class InputTransactionFragment : Fragment() {
         setupDatePicker()
 
         binding.btnSaveTransaction.setOnClickListener {
-            submitTransaction(customerId)
+            submitTransaction()
         }
     }
 
@@ -94,7 +113,18 @@ class InputTransactionFragment : Fragment() {
         binding.tilTransactionDate.setEndIconOnClickListener(showDatePicker)
     }
 
-    private fun submitTransaction(customerId: Int) {
+    private fun submitTransaction() {
+        // PERTAHANAN KRITIS: Jangan izinkan pengiriman jika remoteId belum ada di server
+        val serverCustomerId = resolvedRemoteCustomerId
+        if (serverCustomerId == null) {
+            Toast.makeText(
+                requireContext(),
+                "Pelanggan belum tersinkron ke server. Transaksi tidak dapat disimpan.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
         val odSph = binding.etOdSph.text.toString().toDoubleOrNull() ?: 0.0
         val odCyl = binding.etOdCyl.text.toString().toDoubleOrNull() ?: 0.0
         val odAxis = binding.etOdAxis.text.toString().toIntOrNull() ?: 0
@@ -120,11 +150,8 @@ class InputTransactionFragment : Fragment() {
             PrescriptionRequest(eyeSide = "OS", sphere = osSph, cylinder = osCyl, axis = osAxis, lensType = lensType)
         )
 
-        // Gunakan remoteId server agar transaksi terikat ke pelanggan yang tepat di server
-        val targetServerCustomerId = resolvedRemoteCustomerId ?: customerId
-
         val request = TransactionRequest(
-            customerId = targetServerCustomerId,
+            customerId = serverCustomerId,
             amount = amount,
             transactionDate = selectedDate,
             prescriptions = prescriptions
@@ -135,22 +162,24 @@ class InputTransactionFragment : Fragment() {
 
     private fun setupObserver() {
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.createTransactionEvent.collectLatest { resource ->
-                when (resource) {
-                    is Resource.Loading -> {
-                        binding.progressBar.isVisible = true
-                        binding.btnSaveTransaction.isEnabled = false
-                    }
-                    is Resource.Success -> {
-                        binding.progressBar.isVisible = false
-                        binding.btnSaveTransaction.isEnabled = true
-                        Toast.makeText(requireContext(), resource.data, Toast.LENGTH_LONG).show()
-                        findNavController().navigateUp()
-                    }
-                    is Resource.Error -> {
-                        binding.progressBar.isVisible = false
-                        binding.btnSaveTransaction.isEnabled = true
-                        Toast.makeText(requireContext(), "Error: ${resource.message}", Toast.LENGTH_LONG).show()
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.createTransactionEvent.collect { resource ->
+                    when (resource) {
+                        is Resource.Loading -> {
+                            binding.progressBar.isVisible = true
+                            binding.btnSaveTransaction.isEnabled = false
+                        }
+                        is Resource.Success -> {
+                            binding.progressBar.isVisible = false
+                            binding.btnSaveTransaction.isEnabled = true
+                            Toast.makeText(requireContext(), resource.data, Toast.LENGTH_LONG).show()
+                            findNavController().navigateUp()
+                        }
+                        is Resource.Error -> {
+                            binding.progressBar.isVisible = false
+                            binding.btnSaveTransaction.isEnabled = (resolvedRemoteCustomerId != null)
+                            Toast.makeText(requireContext(), "Error: ${resource.message}", Toast.LENGTH_LONG).show()
+                        }
                     }
                 }
             }

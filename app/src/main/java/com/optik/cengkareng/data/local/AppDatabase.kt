@@ -17,14 +17,16 @@ import com.optik.cengkareng.data.local.dao.CustomerDao
 // v2 (24 Agu 2026): [1] hapus kolom 'alamat' (commit 79990c5, 5 Feb)
 //                   [2] noHp jadi nullable (commit 25aba8f, 20 Agu)
 //                   [3] tambah kolom 'isProfileCompleteBackend' Boolean?
+// v3 (1 Nov 2026):  [1] tambah unique index pada remoteId untuk mencegah duplikasi
+//                   [2] optimasi sync dengan withTransaction dan chunked batching
 //                   NB: fallbackToDestructiveMigration() aktif di AppModule —
 //                   naik version memicu drop+recreate tabel otomatis.
 //                   User WAJIB uninstall app dari device SEKALI sebelum
-//                   first-run v2 jika masih ada DB v1 (identity hash lama).
+//                   first-run jika masih ada DB v1/v2 lama.
 // ============================================================
 @Database(
     entities = [CustomerEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true   // schema JSON di-export ke app/schemas/ agar ada jejak audit
 )
 abstract class AppDatabase : RoomDatabase() {

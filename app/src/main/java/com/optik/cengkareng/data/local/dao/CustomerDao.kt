@@ -43,7 +43,11 @@ interface CustomerDao {
     @Query("UPDATE customers SET remoteId = :remoteId, isSynced = 1 WHERE id = :localId")
     suspend fun updateRemoteId(localId: Int, remoteId: Int)
 
-    // Hapus data lokal yang sudah tersinkron tetapi sudah dihapus di server
-    @Query("DELETE FROM customers WHERE isSynced = 1 AND remoteId NOT IN (:serverRemoteIds)")
-    suspend fun deleteRemovedServerCustomers(serverRemoteIds: List<Int>)
+    // Ambil daftar seluruh remoteId lokal yang sudah tersinkron dan tidak null
+    @Query("SELECT remoteId FROM customers WHERE isSynced = 1 AND remoteId IS NOT NULL")
+    suspend fun getSyncedRemoteIds(): List<Int>
+
+    // Hapus data lokal berdasarkan daftar remoteId (dieksekusi dalam batch chunked 500)
+    @Query("DELETE FROM customers WHERE remoteId IN (:remoteIds)")
+    suspend fun deleteByRemoteIds(remoteIds: List<Int>)
 }

@@ -136,6 +136,18 @@ class CustomerViewModelTest {
     }
 
     @Test
+    fun `loadCustomerTransactions dengan remoteId null mengubah transactionsState menjadi Error tanpa panggil repository`() = runTest {
+        viewModel = CustomerViewModel(repository)
+
+        viewModel.loadCustomerTransactions(null)
+        advanceUntilIdle()
+
+        val state = viewModel.transactionsState.value
+        assertTrue("Expected Error when remoteId is null, got $state", state is Resource.Error)
+        assertEquals("Pelanggan belum tersinkronisasi ke server. Riwayat transaksi belum tersedia.", (state as Resource.Error).message)
+    }
+
+    @Test
     fun `updateCustomer mengirim Loading lalu Success ketika repository sukses`() = runTest {
         val req = CustomerRequest(nama = "Budi", noHp = "081234567890")
         whenever(repository.updateCustomer(eq(1), eq(req))).thenReturn(

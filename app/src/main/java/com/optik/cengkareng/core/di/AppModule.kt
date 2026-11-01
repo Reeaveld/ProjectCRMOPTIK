@@ -2,6 +2,7 @@ package com.optik.cengkareng.core.di
 
 import android.content.Context
 import androidx.room.Room
+import com.optik.cengkareng.core.network.AuthInterceptor
 import com.optik.cengkareng.core.utils.Constants
 import com.optik.cengkareng.data.local.AppDatabase
 import com.optik.cengkareng.data.local.dao.CustomerDao
@@ -22,10 +23,10 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    // 1. Setup Retrofit (Internet)
+    // 1. Setup Retrofit (Jaringan / API)
     @Provides
     @Singleton
-    fun provideRetrofit(authInterceptor: com.optik.cengkareng.core.network.AuthInterceptor): Retrofit {
+    fun provideRetrofit(authInterceptor: AuthInterceptor): Retrofit {
         val logging = HttpLoggingInterceptor().apply {
             level = if (com.optik.cengkareng.BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.HEADERS
@@ -44,7 +45,6 @@ object AppModule {
             .build()
 
         val gson = com.google.gson.GsonBuilder()
-            .setLenient()
             .create()
 
         return Retrofit.Builder()

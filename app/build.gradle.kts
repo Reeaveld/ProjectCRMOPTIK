@@ -32,7 +32,7 @@ android {
     if (localPropertiesFile.exists()) {
         localProperties.load(localPropertiesFile.inputStream())
     }
-    val debugBaseUrl: String = localProperties.getProperty("API_BASE_URL") ?: "https://api.crmoptik.com/api/"
+    val debugBaseUrl: String = localProperties.getProperty("API_BASE_URL") ?: "http://10.0.2.2:8000/api/"
 
     buildTypes {
         debug {

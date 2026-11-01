@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -56,25 +57,32 @@ class CustomerViewModel @Inject constructor(
     }
 
     // --- DETAIL PELANGGAN & TRANSAKSI ---
-    @OptIn(ExperimentalCoroutinesApi::class)
-    fun getCustomerDetail(id: Int): StateFlow<CustomerEntity?> {
+    fun getCustomerDetail(id: Int): Flow<CustomerEntity> {
         return repository.getCustomerById(id)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = null
-            )
     }
 
     private val _transactionsState = MutableStateFlow<Resource<List<TransactionItem>>>(Resource.Loading)
     val transactionsState: StateFlow<Resource<List<TransactionItem>>> = _transactionsState.asStateFlow()
 
-    fun getCustomerTransactions(customerId: Int) {
+    /**
+     * Memuat daftar transaksi pelanggan berdasarkan remoteId server yang valid.
+     * Mencegah pengiriman ID Room lokal ke endpoint server.
+     */
+    fun loadCustomerTransactions(remoteId: Int?) {
+        if (remoteId == null) {
+            _transactionsState.value = Resource.Error("Pelanggan belum tersinkronisasi ke server. Riwayat transaksi belum tersedia.")
+            return
+        }
         viewModelScope.launch {
-            repository.getCustomerTransactions(customerId).collect { result ->
+            repository.getCustomerTransactions(remoteId).collect { result ->
                 _transactionsState.value = result
             }
         }
+    }
+
+    @Deprecated("Gunakan loadCustomerTransactions dengan remoteId yang sudah divalidasi", ReplaceWith("loadCustomerTransactions(remoteId)"))
+    fun getCustomerTransactions(customerId: Int) {
+        loadCustomerTransactions(customerId)
     }
 
     // --- EDIT PELANGGAN ---

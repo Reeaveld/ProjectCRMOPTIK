@@ -263,6 +263,18 @@
             android:layout_marginTop="16dp"
             android:visibility="gone" />
 
+        <TextView
+            android:id="@+id/tvSyncWarning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="#FEF2F2"
+            android:padding="12dp"
+            android:textColor="#DC2626"
+            android:textSize="13sp"
+            android:visibility="gone"
+            android:text="Pelanggan belum tersinkron ke server. Mohon tunggu proses sinkronisasi selesai sebelum menambahkan transaksi." />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSaveTransaction"
             android:layout_width="match_parent"
