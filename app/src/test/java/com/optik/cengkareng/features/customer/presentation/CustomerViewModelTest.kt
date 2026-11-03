@@ -55,6 +55,7 @@ class CustomerViewModelTest {
     fun setUp() {
         repository = mock()
         whenever(repository.getAllCustomers()).thenReturn(flowOf(emptyList()))
+        whenever(repository.observePendingCount()).thenReturn(flowOf(0))
     }
 
     @Test
@@ -121,13 +122,13 @@ class CustomerViewModelTest {
     }
 
     @Test
-    fun `getCustomerTransactions mengubah transactionsState menjadi Success`() = runTest {
+    fun `loadCustomerTransactions dengan remoteId valid mengubah transactionsState menjadi Success`() = runTest {
         whenever(repository.getCustomerTransactions(1)).thenReturn(
             flowOf(Resource.Loading, Resource.Success(sampleTransactions))
         )
         viewModel = CustomerViewModel(repository)
 
-        viewModel.getCustomerTransactions(1)
+        viewModel.loadCustomerTransactions(1)
         advanceUntilIdle()
 
         val state = viewModel.transactionsState.value
@@ -145,6 +146,19 @@ class CustomerViewModelTest {
         val state = viewModel.transactionsState.value
         assertTrue("Expected Error when remoteId is null, got $state", state is Resource.Error)
         assertEquals("Pelanggan belum tersinkronisasi ke server. Riwayat transaksi belum tersedia.", (state as Resource.Error).message)
+    }
+
+    @Test
+    fun `syncCustomers menjadwalkan outbox lalu menarik data dari server`() = runTest {
+        whenever(repository.syncCustomers()).thenReturn(Resource.Success(true))
+        viewModel = CustomerViewModel(repository)
+
+        viewModel.syncCustomers()
+        advanceUntilIdle()
+
+        val order = org.mockito.kotlin.inOrder(repository)
+        order.verify(repository).schedulePendingPushIfNeeded()
+        order.verify(repository).syncCustomers()
     }
 
     @Test

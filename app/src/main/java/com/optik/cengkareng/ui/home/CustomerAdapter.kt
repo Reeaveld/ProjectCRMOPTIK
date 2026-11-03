@@ -46,7 +46,21 @@ class CustomerAdapter(
             val color = generateColorFromName(customer.nama)
             binding.tvAvatar.backgroundTintList = ColorStateList.valueOf(color)
 
-            binding.tvLastDate.text = "Baru"
+            // Status sinkronisasi outbox: ditolak server > menunggu kirim > normal
+            when {
+                customer.syncError != null -> {
+                    binding.tvLastDate.text = "Ditolak: ${customer.syncError.take(30)}"
+                    binding.tvLastDate.setTextColor(Color.parseColor("#DC2626"))
+                }
+                customer.remoteId == null -> {
+                    binding.tvLastDate.text = "Menunggu sinkron"
+                    binding.tvLastDate.setTextColor(Color.parseColor("#D97706"))
+                }
+                else -> {
+                    binding.tvLastDate.text = "Baru"
+                    binding.tvLastDate.setTextColor(Color.parseColor("#6B7280"))
+                }
+            }
 
             // Profile Completeness Indicator
             val isComplete = customer.isProfileComplete()

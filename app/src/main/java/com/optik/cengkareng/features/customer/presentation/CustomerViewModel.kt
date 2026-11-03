@@ -36,9 +36,15 @@ class CustomerViewModel @Inject constructor(
 
     fun syncCustomers() {
         viewModelScope.launch {
+            // Kirim dulu baris outbox (bila ada) agar tarikan berikutnya sudah memuatnya
+            repository.schedulePendingPushIfNeeded()
             repository.syncCustomers()
         }
     }
+
+    /** Jumlah pelanggan yang menunggu dikirim ke server (indikator UI). */
+    val pendingCount: StateFlow<Int> = repository.observePendingCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     // --- TAMBAH PELANGGAN ---
     private val _addCustomerEvent = Channel<Resource<Boolean>>()
@@ -80,15 +86,11 @@ class CustomerViewModel @Inject constructor(
         }
     }
 
-    @Deprecated("Gunakan loadCustomerTransactions dengan remoteId yang sudah divalidasi", ReplaceWith("loadCustomerTransactions(remoteId)"))
-    fun getCustomerTransactions(customerId: Int) {
-        loadCustomerTransactions(customerId)
-    }
-
     // --- EDIT PELANGGAN ---
     private val _updateCustomerEvent = Channel<Resource<String>>()
     val updateCustomerEvent = _updateCustomerEvent.receiveAsFlow()
 
+    /** @param id id Room (lokal). Repository menerjemahkannya ke remoteId; id lokal tidak dikirim ke server. */
     fun updateCustomer(id: Int, request: CustomerRequest) {
         viewModelScope.launch {
             _updateCustomerEvent.send(Resource.Loading)
@@ -102,6 +104,7 @@ class CustomerViewModel @Inject constructor(
     private val _completeProfileEvent = Channel<Resource<String>>()
     val completeProfileEvent = _completeProfileEvent.receiveAsFlow()
 
+    /** @param id id Room (lokal). Repository menerjemahkannya ke remoteId. */
     fun completeProfile(id: Int, noHp: String) {
         viewModelScope.launch {
             _completeProfileEvent.send(Resource.Loading)

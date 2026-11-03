@@ -7,6 +7,7 @@ import com.optik.cengkareng.core.security.EncryptedSecureStore
 import com.optik.cengkareng.core.security.SecureStore
 import com.optik.cengkareng.core.utils.Constants
 import com.optik.cengkareng.data.local.AppDatabase
+import com.optik.cengkareng.data.local.Migrations
 import com.optik.cengkareng.data.local.dao.CustomerDao
 import com.optik.cengkareng.data.remote.api.ApiService
 import dagger.Module
@@ -66,12 +67,18 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
-        return Room.databaseBuilder(
+        val builder = Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             Constants.DATABASE_NAME // Menggunakan nama DB dari Constants
-        ).fallbackToDestructiveMigration()
-            .build()
+        ).addMigrations(*Migrations.ALL)
+
+        // Data pelanggan lokal yang belum tersinkron tidak boleh hilang saat upgrade skema.
+        // Destructive migration hanya dari v1/v2 (skema pra-rilis) dan hanya pada build debug.
+        if (com.optik.cengkareng.BuildConfig.DEBUG) {
+            builder.fallbackToDestructiveMigrationFrom(1, 2)
+        }
+        return builder.build()
     }
 
     // 3. Penyimpanan rahasia terenkripsi (token). Tanpa fallback plaintext.

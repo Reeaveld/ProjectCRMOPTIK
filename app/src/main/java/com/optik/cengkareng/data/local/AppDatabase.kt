@@ -19,14 +19,15 @@ import com.optik.cengkareng.data.local.dao.CustomerDao
 //                   [3] tambah kolom 'isProfileCompleteBackend' Boolean?
 // v3 (1 Nov 2026):  [1] tambah unique index pada remoteId untuk mencegah duplikasi
 //                   [2] optimasi sync dengan withTransaction dan chunked batching
-//                   NB: fallbackToDestructiveMigration() aktif di AppModule —
-//                   naik version memicu drop+recreate tabel otomatis.
-//                   User WAJIB uninstall app dari device SEKALI sebelum
-//                   first-run jika masih ada DB v1/v2 lama.
+// v4 (3 Nov 2026): [1] tambah 'clientUuid' (unik, nullable) untuk outbox idempoten
+//                   [2] tambah 'syncError' (nullable) untuk penolakan server
+//                   Migrasi eksplisit: Migrations.MIGRATION_3_4 (data lokal dipertahankan;
+//                   baris tanpa remoteId diberi UUID acak lewat SQL).
+//                   Destructive migration HANYA dari v1/v2 pada build debug (lihat AppModule).
 // ============================================================
 @Database(
     entities = [CustomerEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true   // schema JSON di-export ke app/schemas/ agar ada jejak audit
 )
 abstract class AppDatabase : RoomDatabase() {

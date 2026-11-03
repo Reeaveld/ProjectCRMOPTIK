@@ -32,7 +32,11 @@ data class CustomerResponse(
     val lastFollowUp: String? = null,
 
     @SerializedName("is_profile_complete")
-    val isProfileComplete: Boolean? = null
+    val isProfileComplete: Boolean? = null,
+
+    /** Dikembalikan server (BE-11) agar sync dapat merekonsiliasi baris outbox yang respons POST-nya hilang. */
+    @SerializedName("client_uuid")
+    val clientUuid: String? = null
 ) {
     /**
      * Konversi timestamp string aman (ISO-8601 atau SQL format) ke epoch millisecond.

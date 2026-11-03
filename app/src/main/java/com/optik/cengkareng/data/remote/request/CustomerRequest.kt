@@ -23,5 +23,9 @@ data class CustomerRequest(
     val ukuranKiri: String? = null,
 
     @SerializedName("ukuran_kanan")
-    val ukuranKanan: String? = null
+    val ukuranKanan: String? = null,
+
+    /** Kunci idempoten (outbox). Null untuk update/complete-profile. Gson tidak mengirim nilai null. */
+    @SerializedName("client_uuid")
+    val clientUuid: String? = null
 )

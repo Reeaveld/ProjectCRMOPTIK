@@ -137,7 +137,10 @@ class InputCustomerFragment : Fragment() {
             is Resource.Loading -> showLoading(true)
             is Resource.Success -> {
                 showLoading(false)
-                Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
+                // data == false: tersimpan di perangkat, dikirim otomatis oleh worker saat jaringan tersedia
+                val message = if (event.data) successMessage
+                    else "💾 Tersimpan di perangkat. Akan dikirim otomatis saat jaringan tersedia."
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                 findNavController().popBackStack()
             }
             is Resource.Error -> {

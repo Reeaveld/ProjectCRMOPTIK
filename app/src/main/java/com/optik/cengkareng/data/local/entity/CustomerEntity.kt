@@ -8,7 +8,8 @@ import com.google.gson.annotations.SerializedName
 @Entity(
     tableName = "customers",
     indices = [
-        Index(value = ["remoteId"], unique = true)
+        Index(value = ["remoteId"], unique = true),
+        Index(value = ["clientUuid"], unique = true)
     ]
 )
 data class CustomerEntity(
@@ -16,6 +17,14 @@ data class CustomerEntity(
     val id: Int = 0,
 
     val remoteId: Int? = null,
+
+    /**
+     * Kunci idempoten untuk POST /customers (outbox). Dibuat saat baris lokal dibuat;
+     * null untuk baris yang berasal dari server. Server mengembalikan baris yang sama
+     * bila client_uuid yang sama dikirim ulang, sehingga respons yang hilang tidak
+     * menghasilkan duplikat.
+     */
+    val clientUuid: String? = null,
 
     val nama: String,
 
@@ -37,7 +46,13 @@ data class CustomerEntity(
     @SerializedName("is_profile_complete")
     val isProfileCompleteBackend: Boolean? = null,
 
-    val isSynced: Boolean = false
+    val isSynced: Boolean = false,
+
+    /**
+     * Alasan penolakan server (mis. 422) untuk baris yang belum terkirim. Baris dengan
+     * syncError tidak dikirim ulang otomatis; pengguna harus memperbaikinya.
+     */
+    val syncError: String? = null
 ) {
     /**
      * Evaluasi kelengkapan profil di client.
