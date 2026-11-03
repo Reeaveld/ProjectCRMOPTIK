@@ -25,12 +25,17 @@ class AuthRepository @Inject constructor(
                 val body = response.body()!!
                 val token = body.token
                 if (!token.isNullOrBlank()) {
-                    tokenManager.saveToken(
+                    val saved = tokenManager.saveToken(
                         token = token,
                         email = body.user?.email,
                         name = body.user?.name
                     )
-                    emit(Resource.Success(body))
+                    if (saved) {
+                        emit(Resource.Success(body))
+                    } else {
+                        // Jangan pura-pura sukses: tanpa token tersimpan pengguna akan terlempar ke layar login.
+                        emit(Resource.Error(MSG_SECURE_STORAGE_UNAVAILABLE))
+                    }
                 } else {
                     emit(Resource.Error("Token otentikasi tidak ditemukan dalam respon server."))
                 }
@@ -61,6 +66,11 @@ class AuthRepository @Inject constructor(
     }
 
     fun isLoggedIn(): Boolean = tokenManager.isLoggedIn()
+
+    companion object {
+        const val MSG_SECURE_STORAGE_UNAVAILABLE =
+            "Penyimpanan aman tidak tersedia di perangkat ini, sehingga sesi tidak dapat disimpan. Login dibatalkan."
+    }
 
     fun getAdminEmail(): String? = tokenManager.getAdminEmail()
 

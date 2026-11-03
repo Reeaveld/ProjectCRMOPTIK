@@ -5,7 +5,7 @@ import com.optik.cengkareng.BuildConfig
 object Constants {
     // URL Backend Laravel — otomatis sesuai build variant (debug/release)
     // Debug: http://10.0.2.2:8000/api/ (emulator)
-    // Release: https://api.optik-cengkareng.com/api/ (production)
+    // Release: https://api.crmoptik.com/api/ (production)
     val BASE_URL: String = BuildConfig.BASE_URL
 
     // Nama Database Room

@@ -3,6 +3,8 @@ package com.optik.cengkareng.core.di
 import android.content.Context
 import androidx.room.Room
 import com.optik.cengkareng.core.network.AuthInterceptor
+import com.optik.cengkareng.core.security.EncryptedSecureStore
+import com.optik.cengkareng.core.security.SecureStore
 import com.optik.cengkareng.core.utils.Constants
 import com.optik.cengkareng.data.local.AppDatabase
 import com.optik.cengkareng.data.local.dao.CustomerDao
@@ -71,6 +73,11 @@ object AppModule {
         ).fallbackToDestructiveMigration()
             .build()
     }
+
+    // 3. Penyimpanan rahasia terenkripsi (token). Tanpa fallback plaintext.
+    @Provides
+    @Singleton
+    fun provideSecureStore(@ApplicationContext context: Context): SecureStore = EncryptedSecureStore(context)
 
     @Provides
     fun provideCustomerDao(db: AppDatabase): CustomerDao = db.customerDao()
