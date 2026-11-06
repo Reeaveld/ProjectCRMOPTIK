@@ -3,6 +3,7 @@ package com.optik.cengkareng.data.repository
 import com.optik.cengkareng.core.utils.Resource
 import com.optik.cengkareng.data.remote.api.ApiService
 import com.optik.cengkareng.data.remote.model.CustomerSearchResultResponse
+import com.optik.cengkareng.data.remote.model.DashboardRetentionResponse
 import com.optik.cengkareng.data.remote.model.DashboardStatsResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -23,6 +24,22 @@ class DashboardRepository @Inject constructor(
                 } else {
                     val errorMsg = response.errorBody()?.string() ?: response.message()
                     Resource.Error("Gagal memuat data statistik: $errorMsg")
+                }
+            } catch (e: Exception) {
+                Resource.Error(e.localizedMessage ?: "Terjadi kesalahan jaringan.")
+            }
+        }
+    }
+
+    suspend fun getDashboardRetention(from: String, to: String): Resource<DashboardRetentionResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getDashboardRetention(from, to)
+                if (response.isSuccessful && response.body() != null) {
+                    Resource.Success(response.body()!!)
+                } else {
+                    val errorMsg = response.errorBody()?.string() ?: response.message()
+                    Resource.Error("Gagal memuat data retensi: $errorMsg")
                 }
             } catch (e: Exception) {
                 Resource.Error(e.localizedMessage ?: "Terjadi kesalahan jaringan.")

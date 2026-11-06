@@ -84,6 +84,15 @@ interface ApiService {
     ): Response<com.optik.cengkareng.data.remote.model.DashboardStatsResponse>
 
     /**
+     * Dashboard Retention Analytics API
+     */
+    @GET("dashboard/retention")
+    suspend fun getDashboardRetention(
+        @retrofit2.http.Query("from") from: String,
+        @retrofit2.http.Query("to") to: String
+    ): Response<com.optik.cengkareng.data.remote.model.DashboardRetentionResponse>
+
+    /**
      * Pencarian Pelanggan berdasarkan Tanggal Transaksi
      */
     @GET("customers/search")

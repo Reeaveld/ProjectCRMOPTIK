@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.optik.cengkareng.core.utils.Resource
 import com.optik.cengkareng.data.remote.model.CustomerSearchResultResponse
+import com.optik.cengkareng.data.remote.model.DashboardRetentionResponse
 import com.optik.cengkareng.data.remote.model.DashboardStatsResponse
 import com.optik.cengkareng.data.repository.DashboardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +29,9 @@ class DashboardViewModel @Inject constructor(
 
     private val _statsState = MutableStateFlow<Resource<DashboardStatsResponse>>(Resource.Loading)
     val statsState: StateFlow<Resource<DashboardStatsResponse>> = _statsState.asStateFlow()
+
+    private val _retentionState = MutableStateFlow<Resource<DashboardRetentionResponse>>(Resource.Loading)
+    val retentionState: StateFlow<Resource<DashboardRetentionResponse>> = _retentionState.asStateFlow()
 
     private val _searchState = MutableStateFlow<Resource<CustomerSearchResultResponse>>(Resource.Success(CustomerSearchResultResponse()))
     val searchState: StateFlow<Resource<CustomerSearchResultResponse>> = _searchState.asStateFlow()
@@ -68,8 +73,11 @@ class DashboardViewModel @Inject constructor(
 
         viewModelScope.launch {
             _statsState.value = Resource.Loading
-            val result = repository.getDashboardStats(from, to)
-            _statsState.value = result
+            _retentionState.value = Resource.Loading
+            val statsDeferred = async { repository.getDashboardStats(from, to) }
+            val retentionDeferred = async { repository.getDashboardRetention(from, to) }
+            _statsState.value = statsDeferred.await()
+            _retentionState.value = retentionDeferred.await()
         }
     }
 

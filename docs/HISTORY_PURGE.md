@@ -35,6 +35,7 @@ pip install git-filter-repo
 ```bash
 git clone https://github.com/Reeaveld/ProjectCRMOPTIK.git ProjectCRMOPTIK_purge
 cd ProjectCRMOPTIK_purge
+git config --local crmoptik.purge-scratch true   # penanda eksplisit: ini klon scratch
 ```
 
 ### Langkah 5: Jalankan Filter Repo
@@ -73,5 +74,10 @@ Karena GitHub menyimpan cache commit lama (dangling commits/forks/PR), commit ha
 
 ## 2. Skrip Eksekusi Otomatis (Helper)
 Skrip bash dan PowerShell tersedia di:
-- `scripts/purge_history.sh`
-- `scripts/purge_history.ps1`
+- `scripts/purge_history.sh /path/ke/ProjectCRMOPTIK_backup_mirror.git`
+- `scripts/purge_history.ps1 -BackupMirror C:\path\ProjectCRMOPTIK_backup_mirror.git`
+
+Pengaman skrip (menolak berjalan bila tidak terpenuhi): penanda klon scratch (`crmoptik.purge-scratch=true`),
+nama folder mengandung `purge`, working tree bersih, path backup mirror diberikan, berupa repo bare, dan memuat
+semua ujung branch lokal; konfirmasi harus mengetik `HAPUS RIWAYAT`. Skrip tidak pernah melakukan push; force-push
+(Langkah 7) tetap hanya dilakukan sendiri oleh pemilik.

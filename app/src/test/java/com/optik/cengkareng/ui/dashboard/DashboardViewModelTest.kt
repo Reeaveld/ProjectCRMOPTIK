@@ -3,11 +3,14 @@ package com.optik.cengkareng.ui.dashboard
 import app.cash.turbine.test
 import com.optik.cengkareng.MainDispatcherRule
 import com.optik.cengkareng.core.utils.Resource
+import com.optik.cengkareng.data.remote.model.BeforeAfterRetentionItem
 import com.optik.cengkareng.data.remote.model.CustomerSearchItem
 import com.optik.cengkareng.data.remote.model.CustomerSearchResultResponse
+import com.optik.cengkareng.data.remote.model.DashboardRetentionResponse
 import com.optik.cengkareng.data.remote.model.DashboardStatsResponse
 import com.optik.cengkareng.data.remote.model.DateRangeInfo
 import com.optik.cengkareng.data.remote.model.KpiStats
+import com.optik.cengkareng.data.remote.model.SegmentRetentionItem
 import com.optik.cengkareng.data.repository.DashboardRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -41,9 +44,23 @@ class DashboardViewModelTest {
             transactionsCount = 156,
             followupSent = 156,
             followupTotal = 178,
-            deliveryRate = 87.6,
+            queuedRate = 87.6,
             reachabilityRate = 76.2
         )
+    )
+
+    private val mockRetentionResponse = DashboardRetentionResponse(
+        dateRange = DateRangeInfo(from = "2026-09-01", to = "2026-09-13"),
+        kpi = KpiStats(
+            activeCustomersCount = 3,
+            repeatCustomersCount = 1,
+            repeatPurchaseRate = 33.3,
+            returningCustomersCount = 2,
+            returningCustomerRate = 66.7
+        ),
+        bpjsRetention = SegmentRetentionItem("BPJS", 10, 5, 2, 40.0, 3, 60.0),
+        nonBpjsRetention = SegmentRetentionItem("Reguler", 20, 10, 4, 40.0, 5, 50.0),
+        beforeAfter = BeforeAfterRetentionItem(15.0, 33.3, 18.3)
     )
 
     private val mockSearchResponse = CustomerSearchResultResponse(
@@ -64,9 +81,11 @@ class DashboardViewModelTest {
     }
 
     @Test
-    fun `loadStats updates statsState with success data`() = runTest {
+    fun `loadStats updates statsState and retentionState with success data`() = runTest {
         `when`(repository.getDashboardStats(any(), any()))
             .thenReturn(Resource.Success(mockStatsResponse))
+        `when`(repository.getDashboardRetention(any(), any()))
+            .thenReturn(Resource.Success(mockRetentionResponse))
         `when`(repository.searchCustomersByDate(any(), any()))
             .thenReturn(Resource.Success(mockSearchResponse))
 
@@ -78,7 +97,15 @@ class DashboardViewModelTest {
             val data = (item as Resource.Success).data
             assertEquals(347, data.kpi?.totalCustomers)
             assertEquals(32340000.0, data.kpi?.revenue ?: 0.0, 0.01)
-            assertEquals(87.6, data.kpi?.deliveryRate ?: 0.0, 0.01)
+            assertEquals(87.6, data.kpi?.queuedRate ?: 0.0, 0.01)
+        }
+
+        viewModel.retentionState.test {
+            val item = awaitItem()
+            assertTrue(item is Resource.Success)
+            val data = (item as Resource.Success).data
+            assertEquals(33.3, data.kpi?.repeatPurchaseRate ?: 0.0, 0.01)
+            assertEquals("BPJS", data.bpjsRetention?.segment)
         }
     }
 
@@ -86,6 +113,8 @@ class DashboardViewModelTest {
     fun `searchCustomers updates searchState with result list`() = runTest {
         `when`(repository.getDashboardStats(any(), any()))
             .thenReturn(Resource.Success(mockStatsResponse))
+        `when`(repository.getDashboardRetention(any(), any()))
+            .thenReturn(Resource.Success(mockRetentionResponse))
         `when`(repository.searchCustomersByDate(any(), any()))
             .thenReturn(Resource.Success(mockSearchResponse))
 
@@ -104,6 +133,8 @@ class DashboardViewModelTest {
     fun `selectFilterToday sets today label and loads data`() = runTest {
         `when`(repository.getDashboardStats(any(), any()))
             .thenReturn(Resource.Success(mockStatsResponse))
+        `when`(repository.getDashboardRetention(any(), any()))
+            .thenReturn(Resource.Success(mockRetentionResponse))
         `when`(repository.searchCustomersByDate(any(), any()))
             .thenReturn(Resource.Success(mockSearchResponse))
 
@@ -116,6 +147,8 @@ class DashboardViewModelTest {
     @Test
     fun `loadStats handles error correctly`() = runTest {
         `when`(repository.getDashboardStats(any(), any()))
+            .thenReturn(Resource.Error("Network failure"))
+        `when`(repository.getDashboardRetention(any(), any()))
             .thenReturn(Resource.Error("Network failure"))
         `when`(repository.searchCustomersByDate(any(), any()))
             .thenReturn(Resource.Success(mockSearchResponse))

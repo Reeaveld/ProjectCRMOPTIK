@@ -70,8 +70,21 @@ data class KpiStats(
     @SerializedName("followup_total")
     val followupTotal: Int = 0,
 
-    @SerializedName("delivery_rate")
-    val deliveryRate: Double = 0.0,
+    /** sent / (sent + failed) jadwal jatuh tempo. "sent" = diterima antrean WhatsApp (bukan terkirim). null = belum ada data. */
+    @SerializedName("queued_rate")
+    val queuedRate: Double? = null,
+
+    @SerializedName("followup_failed")
+    val followupFailed: Int = 0,
+
+    @SerializedName("followup_pending")
+    val followupPending: Int = 0,
+
+    @SerializedName("followup_blocked")
+    val followupBlocked: Int = 0,
+
+    @SerializedName("followup_simulated")
+    val followupSimulated: Int = 0,
 
     @SerializedName("complete_profiles_count")
     val completeProfilesCount: Int = 0,
@@ -80,7 +93,23 @@ data class KpiStats(
     val incompleteProfilesCount: Int = 0,
 
     @SerializedName("reachability_rate")
-    val reachabilityRate: Double = 0.0
+    val reachabilityRate: Double = 0.0,
+
+    // Rumusan Masalah 3 (rentang yang dipilih). null = tidak ada pelanggan aktif pada rentang.
+    @SerializedName("active_customers_count")
+    val activeCustomersCount: Int = 0,
+
+    @SerializedName("repeat_customers_count")
+    val repeatCustomersCount: Int = 0,
+
+    @SerializedName("repeat_purchase_rate")
+    val repeatPurchaseRate: Double? = null,
+
+    @SerializedName("returning_customers_count")
+    val returningCustomersCount: Int = 0,
+
+    @SerializedName("returning_customer_rate")
+    val returningCustomerRate: Double? = null
 )
 
 data class RevenueTrendItem(
@@ -228,4 +257,61 @@ data class SearchPrescriptionItem(
 
     @SerializedName("lens_type")
     val lensType: String? = null
+)
+
+/**
+ * Model data respons API Dashboard Retention Analytics (/api/dashboard/retention)
+ */
+data class DashboardRetentionResponse(
+    @SerializedName("date_range")
+    val dateRange: DateRangeInfo? = null,
+
+    @SerializedName("kpi")
+    val kpi: KpiStats? = null,
+
+    @SerializedName("bpjs_retention")
+    val bpjsRetention: SegmentRetentionItem? = null,
+
+    @SerializedName("non_bpjs_retention")
+    val nonBpjsRetention: SegmentRetentionItem? = null,
+
+    @SerializedName("before_after")
+    val beforeAfter: BeforeAfterRetentionItem? = null,
+
+    @SerializedName("followup_return_rate")
+    val followupReturnRate: Double? = null
+)
+
+data class SegmentRetentionItem(
+    @SerializedName("segment")
+    val segment: String = "",
+
+    @SerializedName("total_customers")
+    val totalCustomers: Int = 0,
+
+    @SerializedName("active_customers")
+    val activeCustomers: Int = 0,
+
+    @SerializedName("repeat_customers")
+    val repeatCustomers: Int = 0,
+
+    @SerializedName("repeat_purchase_rate")
+    val repeatPurchaseRate: Double? = null,
+
+    @SerializedName("returning_customers")
+    val returningCustomers: Int = 0,
+
+    @SerializedName("returning_customer_rate")
+    val returningCustomerRate: Double? = null
+)
+
+data class BeforeAfterRetentionItem(
+    @SerializedName("before_rate")
+    val beforeRate: Double? = null,
+
+    @SerializedName("after_rate")
+    val afterRate: Double? = null,
+
+    @SerializedName("improvement_delta")
+    val improvementDelta: Double? = null
 )

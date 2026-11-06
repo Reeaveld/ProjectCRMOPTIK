@@ -167,6 +167,15 @@ class DashboardFragment : Fragment() {
                     }
                 }
 
+                // Observe retention state
+                launch {
+                    viewModel.retentionState.collect { state ->
+                        if (state is Resource.Success) {
+                            renderRetention(state.data)
+                        }
+                    }
+                }
+
                 // Observe search state
                 launch {
                     viewModel.searchState.collect { state ->
@@ -228,7 +237,13 @@ class DashboardFragment : Fragment() {
 
             // KPI 4: Follow-Up
             binding.tvKpiFollowUpSent.text = "${kpi.followupSent} / ${kpi.followupTotal}"
-            binding.tvKpiFollowUpRate.text = "Rate: ${kpi.deliveryRate}% Terkirim"
+            binding.tvKpiFollowUpRate.text = KpiFormatter.queuedRate(kpi)
+
+            // Retensi (Rumusan Masalah 3)
+            binding.tvKpiRepeatPurchase.text = KpiFormatter.repeatPurchaseRate(kpi)
+            binding.tvKpiRepeatPurchaseDetail.text = KpiFormatter.repeatPurchaseDetail(kpi)
+            binding.tvKpiReturning.text = KpiFormatter.returningCustomerRate(kpi)
+            binding.tvKpiReturningDetail.text = KpiFormatter.returningCustomerDetail(kpi)
 
             // Reachability Card
             binding.progressReachability.progress = kpi.reachabilityRate.toInt()
@@ -242,6 +257,16 @@ class DashboardFragment : Fragment() {
         renderFollowUpDonutChart(data)
         renderCustomerGrowthChart(data)
         renderOpticalInsights(data)
+    }
+
+    private fun renderRetention(data: com.optik.cengkareng.data.remote.model.DashboardRetentionResponse) {
+        val kpi = data.kpi
+        if (kpi != null) {
+            binding.tvKpiRepeatPurchase.text = KpiFormatter.repeatPurchaseRate(kpi)
+            binding.tvKpiRepeatPurchaseDetail.text = KpiFormatter.repeatPurchaseDetail(kpi)
+            binding.tvKpiReturning.text = KpiFormatter.returningCustomerRate(kpi)
+            binding.tvKpiReturningDetail.text = KpiFormatter.returningCustomerDetail(kpi)
+        }
     }
 
     private fun renderRevenueTrendChart(data: DashboardStatsResponse) {

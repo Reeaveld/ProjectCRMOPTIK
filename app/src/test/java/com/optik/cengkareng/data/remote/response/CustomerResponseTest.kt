@@ -64,3 +64,4 @@ class CustomerResponseTest {
         assertEquals(0L, responseInvalid.parseLastFollowUpEpoch())
     }
 }
+
