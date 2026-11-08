@@ -260,12 +260,12 @@ class DashboardFragment : Fragment() {
     }
 
     private fun renderRetention(data: com.optik.cengkareng.data.remote.model.DashboardRetentionResponse) {
-        val kpi = data.kpi
-        if (kpi != null) {
-            binding.tvKpiRepeatPurchase.text = KpiFormatter.repeatPurchaseRate(kpi)
-            binding.tvKpiRepeatPurchaseDetail.text = KpiFormatter.repeatPurchaseDetail(kpi)
-            binding.tvKpiReturning.text = KpiFormatter.returningCustomerRate(kpi)
-            binding.tvKpiReturningDetail.text = KpiFormatter.returningCustomerDetail(kpi)
+        val purchaseAll = data.purchase?.all
+        if (purchaseAll != null) {
+            binding.tvKpiRepeatPurchase.text = KpiFormatter.purchaseSegmentRepeatRate(purchaseAll)
+            binding.tvKpiRepeatPurchaseDetail.text = KpiFormatter.purchaseSegmentRepeatDetail(purchaseAll)
+            binding.tvKpiReturning.text = KpiFormatter.purchaseSegmentReturningRate(purchaseAll)
+            binding.tvKpiReturningDetail.text = KpiFormatter.purchaseSegmentReturningDetail(purchaseAll)
         }
     }
 

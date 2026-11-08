@@ -3,14 +3,14 @@ package com.optik.cengkareng.ui.dashboard
 import app.cash.turbine.test
 import com.optik.cengkareng.MainDispatcherRule
 import com.optik.cengkareng.core.utils.Resource
-import com.optik.cengkareng.data.remote.model.BeforeAfterRetentionItem
 import com.optik.cengkareng.data.remote.model.CustomerSearchItem
 import com.optik.cengkareng.data.remote.model.CustomerSearchResultResponse
 import com.optik.cengkareng.data.remote.model.DashboardRetentionResponse
 import com.optik.cengkareng.data.remote.model.DashboardStatsResponse
 import com.optik.cengkareng.data.remote.model.DateRangeInfo
 import com.optik.cengkareng.data.remote.model.KpiStats
-import com.optik.cengkareng.data.remote.model.SegmentRetentionItem
+import com.optik.cengkareng.data.remote.model.PurchaseMetricsGroup
+import com.optik.cengkareng.data.remote.model.PurchaseSegmentMetrics
 import com.optik.cengkareng.data.repository.DashboardRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -51,16 +51,15 @@ class DashboardViewModelTest {
 
     private val mockRetentionResponse = DashboardRetentionResponse(
         dateRange = DateRangeInfo(from = "2026-09-01", to = "2026-09-13"),
-        kpi = KpiStats(
-            activeCustomersCount = 3,
-            repeatCustomersCount = 1,
-            repeatPurchaseRate = 33.3,
-            returningCustomersCount = 2,
-            returningCustomerRate = 66.7
-        ),
-        bpjsRetention = SegmentRetentionItem("BPJS", 10, 5, 2, 40.0, 3, 60.0),
-        nonBpjsRetention = SegmentRetentionItem("Reguler", 20, 10, 4, 40.0, 5, 50.0),
-        beforeAfter = BeforeAfterRetentionItem(15.0, 33.3, 18.3)
+        purchase = PurchaseMetricsGroup(
+            all = PurchaseSegmentMetrics(
+                activeCustomers = 3,
+                repeatCustomers = 1,
+                returningCustomers = 2,
+                repeatPurchaseRate = 33.3,
+                returningCustomerRate = 66.7
+            )
+        )
     )
 
     private val mockSearchResponse = CustomerSearchResultResponse(
@@ -104,8 +103,7 @@ class DashboardViewModelTest {
             val item = awaitItem()
             assertTrue(item is Resource.Success)
             val data = (item as Resource.Success).data
-            assertEquals(33.3, data.kpi?.repeatPurchaseRate ?: 0.0, 0.01)
-            assertEquals("BPJS", data.bpjsRetention?.segment)
+            assertEquals(33.3, data.purchase?.all?.repeatPurchaseRate ?: 0.0, 0.01)
         }
     }
 

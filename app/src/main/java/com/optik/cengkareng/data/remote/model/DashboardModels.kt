@@ -261,33 +261,151 @@ data class SearchPrescriptionItem(
 
 /**
  * Model data respons API Dashboard Retention Analytics (/api/dashboard/retention)
+ * Sesuai dengan output controller Laravel DashboardController@retention
  */
 data class DashboardRetentionResponse(
     @SerializedName("date_range")
     val dateRange: DateRangeInfo? = null,
 
-    @SerializedName("kpi")
-    val kpi: KpiStats? = null,
+    @SerializedName("purchase")
+    val purchase: PurchaseMetricsGroup? = null,
 
-    @SerializedName("bpjs_retention")
-    val bpjsRetention: SegmentRetentionItem? = null,
+    @SerializedName("followup_queue")
+    val followupQueue: FollowupQueueMetrics? = null,
 
-    @SerializedName("non_bpjs_retention")
-    val nonBpjsRetention: SegmentRetentionItem? = null,
+    @SerializedName("followup_return")
+    val followupReturn: FollowupReturnMetrics? = null,
 
     @SerializedName("before_after")
-    val beforeAfter: BeforeAfterRetentionItem? = null,
+    val beforeAfter: Map<String, BeforeAfterSegment>? = null,
 
-    @SerializedName("followup_return_rate")
-    val followupReturnRate: Double? = null
+    @SerializedName("engagement")
+    val engagement: EngagementMetrics? = null,
+
+    @SerializedName("notes")
+    val notes: List<String> = emptyList()
 )
 
-data class SegmentRetentionItem(
-    @SerializedName("segment")
-    val segment: String = "",
+data class PurchaseMetricsGroup(
+    @SerializedName("all")
+    val all: PurchaseSegmentMetrics? = null,
 
-    @SerializedName("total_customers")
-    val totalCustomers: Int = 0,
+    @SerializedName("bpjs")
+    val bpjs: PurchaseSegmentMetrics? = null,
+
+    @SerializedName("non_bpjs")
+    val nonBpjs: PurchaseSegmentMetrics? = null
+)
+
+data class PurchaseSegmentMetrics(
+    @SerializedName("active_customers")
+    val activeCustomers: Int = 0,
+
+    @SerializedName("repeat_customers")
+    val repeatCustomers: Int = 0,
+
+    @SerializedName("returning_customers")
+    val returningCustomers: Int = 0,
+
+    @SerializedName("repeat_purchase_rate")
+    val repeatPurchaseRate: Double? = null,
+
+    @SerializedName("returning_customer_rate")
+    val returningCustomerRate: Double? = null
+)
+
+data class FollowupQueueMetrics(
+    @SerializedName("sent")
+    val sent: Int = 0,
+
+    @SerializedName("sent_simulated")
+    val sentSimulated: Int = 0,
+
+    @SerializedName("failed")
+    val failed: Int = 0,
+
+    @SerializedName("pending")
+    val pending: Int = 0,
+
+    @SerializedName("blocked")
+    val blocked: Int = 0,
+
+    @SerializedName("cancelled")
+    val cancelled: Int = 0,
+
+    @SerializedName("queued_rate")
+    val queuedRate: Double? = null,
+
+    @SerializedName("delivered")
+    val delivered: Int = 0,
+
+    @SerializedName("delivered_rate")
+    val deliveredRate: Double? = null,
+
+    @SerializedName("delivery_tracking")
+    val deliveryTracking: Boolean = false
+)
+
+data class FollowupReturnMetrics(
+    @SerializedName("return_days")
+    val returnDays: Int = 30,
+
+    @SerializedName("treated")
+    val treated: ReturnCohortMetrics? = null,
+
+    @SerializedName("comparison")
+    val comparison: ReturnCohortMetrics? = null,
+
+    @SerializedName("caveat")
+    val caveat: String? = null
+)
+
+data class ReturnCohortMetrics(
+    @SerializedName("cohort_size")
+    val cohortSize: Int = 0,
+
+    @SerializedName("returned")
+    val returned: Int = 0,
+
+    @SerializedName("return_rate")
+    val returnRate: Double? = null,
+
+    @SerializedName("immature_excluded")
+    val immatureExcluded: Int = 0
+)
+
+data class BeforeAfterSegment(
+    @SerializedName("go_live_date")
+    val goLiveDate: String? = null,
+
+    @SerializedName("window_days")
+    val windowDays: Int = 90,
+
+    @SerializedName("segment")
+    val segment: String = "all",
+
+    @SerializedName("before")
+    val before: BeforeAfterWindowMetrics? = null,
+
+    @SerializedName("after")
+    val after: BeforeAfterWindowMetrics? = null,
+
+    @SerializedName("baseline_available")
+    val baselineAvailable: Boolean = false,
+
+    @SerializedName("after_window_complete")
+    val afterWindowComplete: Boolean = false
+)
+
+data class BeforeAfterWindowMetrics(
+    @SerializedName("from")
+    val from: String = "",
+
+    @SerializedName("to")
+    val to: String = "",
+
+    @SerializedName("transactions")
+    val transactions: Int = 0,
 
     @SerializedName("active_customers")
     val activeCustomers: Int = 0,
@@ -295,23 +413,20 @@ data class SegmentRetentionItem(
     @SerializedName("repeat_customers")
     val repeatCustomers: Int = 0,
 
-    @SerializedName("repeat_purchase_rate")
-    val repeatPurchaseRate: Double? = null,
-
     @SerializedName("returning_customers")
     val returningCustomers: Int = 0,
+
+    @SerializedName("repeat_purchase_rate")
+    val repeatPurchaseRate: Double? = null,
 
     @SerializedName("returning_customer_rate")
     val returningCustomerRate: Double? = null
 )
 
-data class BeforeAfterRetentionItem(
-    @SerializedName("before_rate")
-    val beforeRate: Double? = null,
+data class EngagementMetrics(
+    @SerializedName("available")
+    val available: Boolean = false,
 
-    @SerializedName("after_rate")
-    val afterRate: Double? = null,
-
-    @SerializedName("improvement_delta")
-    val improvementDelta: Double? = null
+    @SerializedName("reason")
+    val reason: String? = null
 )
