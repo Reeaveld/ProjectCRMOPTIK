@@ -122,6 +122,10 @@ class CustomerViewModel @Inject constructor(
         viewModelScope.launch {
             _createTransactionEvent.send(Resource.Loading)
             repository.createTransaction(request).collect { result ->
+                if (result is Resource.Success) {
+                    loadCustomerTransactions(request.customerId)
+                    syncCustomers()
+                }
                 _createTransactionEvent.send(result)
             }
         }

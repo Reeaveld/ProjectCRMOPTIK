@@ -404,6 +404,21 @@ class CustomerRepository @Inject constructor(
         try {
             val response = apiService.createTransaction(request)
             if (response.isSuccessful) {
+                // Update spesifikasi resep dan jenis lensa terbaru di database lokal Room
+                val od = request.prescriptions.find { it.eyeSide == "OD" }
+                val os = request.prescriptions.find { it.eyeSide == "OS" }
+                val lensType = od?.lensType ?: os?.lensType
+
+                val localCustomer = customerDao.getCustomerByRemoteId(request.customerId)
+                if (localCustomer != null) {
+                    val updatedCustomer = localCustomer.copy(
+                        ukuranKanan = od?.let { String.format(java.util.Locale.US, "%.2f", it.sphere) } ?: localCustomer.ukuranKanan,
+                        ukuranKiri = os?.let { String.format(java.util.Locale.US, "%.2f", it.sphere) } ?: localCustomer.ukuranKiri,
+                        jenisLensa = if (!lensType.isNullOrBlank()) lensType else localCustomer.jenisLensa
+                    )
+                    customerDao.updateCustomer(updatedCustomer)
+                }
+
                 emit(Resource.Success("Transaksi berhasil disimpan! Jadwal follow-up otomatis dibuat."))
             } else {
                 emit(

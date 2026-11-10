@@ -56,6 +56,7 @@ class CustomerViewModelTest {
         repository = mock()
         whenever(repository.getAllCustomers()).thenReturn(flowOf(emptyList()))
         whenever(repository.observePendingCount()).thenReturn(flowOf(0))
+        whenever(repository.getCustomerTransactions(any())).thenReturn(flowOf(Resource.Success(emptyList())))
     }
 
     @Test

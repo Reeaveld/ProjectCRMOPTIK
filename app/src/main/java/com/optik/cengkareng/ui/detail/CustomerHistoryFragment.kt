@@ -61,21 +61,27 @@ class CustomerHistoryFragment : Fragment() {
                 viewModel.transactionsState.collect { resource ->
                     when (resource) {
                         is Resource.Loading -> {
-                            // Tampilkan ProgressBar, sembunyikan RecyclerView
                             binding.progressBar.visibility = View.VISIBLE
                             binding.rvHistory.visibility = View.GONE
+                            binding.tvEmptyHistory.visibility = View.GONE
                         }
                         is Resource.Success -> {
-                            // Sembunyikan ProgressBar, tampilkan RecyclerView
                             binding.progressBar.visibility = View.GONE
-                            binding.rvHistory.visibility = View.VISIBLE
-
-                            // Lempar data JSON ke Adapter!
-                            historyAdapter.submitList(resource.data)
+                            if (resource.data.isEmpty()) {
+                                binding.rvHistory.visibility = View.GONE
+                                binding.tvEmptyHistory.visibility = View.VISIBLE
+                                binding.tvEmptyHistory.text = "Belum ada riwayat transaksi"
+                            } else {
+                                binding.rvHistory.visibility = View.VISIBLE
+                                binding.tvEmptyHistory.visibility = View.GONE
+                                historyAdapter.submitList(resource.data)
+                            }
                         }
                         is Resource.Error -> {
                             binding.progressBar.visibility = View.GONE
-                            Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show()
+                            binding.rvHistory.visibility = View.GONE
+                            binding.tvEmptyHistory.visibility = View.VISIBLE
+                            binding.tvEmptyHistory.text = resource.message
                         }
                     }
                 }

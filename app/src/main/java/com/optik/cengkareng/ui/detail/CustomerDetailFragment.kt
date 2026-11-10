@@ -122,6 +122,16 @@ class CustomerDetailFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        val remoteId = currentCustomer?.remoteId
+        if (remoteId != null) {
+            lastRequestedRemoteId = remoteId
+            viewModel.loadCustomerTransactions(remoteId)
+            viewModel.syncCustomers()
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
